@@ -9,7 +9,7 @@
 	<key>PLIST_VERSION</key>
 	<string>1</string>
 	<key>BUNDLE_ID</key>
-	<string>com.osakalive.app</string>
+	<string>live.osaka.dev.staging</string>
 	<key>PROJECT_ID</key>
 	<string>osaka-live-503110</string>
 	<key>STORAGE_BUCKET</key>
@@ -25,6 +25,6 @@
 	<key>IS_SIGNIN_ENABLED</key>
 	<true></true>
 	<key>GOOGLE_APP_ID</key>
-	<string>1:483630909707:ios:d42c3bf17a402ee3807a0e</string>
+	<string>1:483630909707:ios:c3f2b879fc3e12e2807a0e</string>
 </dict>
 </plist>

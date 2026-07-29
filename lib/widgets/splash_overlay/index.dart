@@ -41,7 +41,7 @@ class SplashOverlay extends StatelessWidget {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     const Text(
-                      'Explore Osaka.\nSee what\'s live.',
+                      '오사카를 만나보세요.\n지금, 라이브로.',
                       style: TextStyle(
                         fontSize: 34,
                         height: 1.08,
@@ -63,7 +63,7 @@ class SplashOverlay extends StatelessWidget {
                         ).createShader(bounds);
                       },
                       child: const Text(
-                        'Join the moment.',
+                        '이 순간에 함께하세요.',
                         style: TextStyle(
                           fontSize: 34,
                           height: 1.08,
@@ -76,9 +76,9 @@ class SplashOverlay extends StatelessWidget {
                     ),
                     const SizedBox(height: 18),
                     Text(
-                      'Live videos, real people, real places.\n'
-                      'Make better plans with real-time proof\n'
-                      'from the city.',
+                      '실시간 영상, 진짜 사람들, 실제 장소.\n'
+                      '현장의 생생한 정보를 확인하고\n'
+                      '더 나은 계획을 세워보세요.',
                       style: TextStyle(
                         fontSize: 16,
                         height: 1.35,

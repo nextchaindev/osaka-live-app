@@ -40,15 +40,17 @@
 	<key>LSRequiresIPhoneOS</key>
 	<true/>
 	<key>NSCameraUsageDescription</key>
-	<string>We use your camera to let you take a profile photo and attach images when creating a support ticket.</string>
+	<string>Required to record live verification videos. Gallery uploads are not allowed.</string>
 	<key>NSLocalNetworkUsageDescription</key>
 	<string>This app needs access to local network for development and debugging purposes.</string>
 	<key>NSLocationWhenInUseUsageDescription</key>
 	<string>We use your location to show nearby Osaka live content and update the map around you.</string>
+	<key>NSLocationAlwaysAndWhenInUseUsageDescription</key>
+	<string>Required to verify users are physically at the venue before posting.</string>
 	<key>NSMicrophoneUsageDescription</key>
-	<string>We use your microphone to record live camera videos in Osaka Live.</string>
+	<string>Required to record audio together with the live verification video.</string>
 	<key>NSPhotoLibraryUsageDescription</key>
-	<string>We use your photo library to let you choose a profile photo and attach images when creating a support ticket.</string>
+	<string>We use your photo library to let you choose a profile photo and attach images when chatting or setting up profile images.</string>
 	<key>UIApplicationSupportsIndirectInputEvents</key>
 	<true/>
 	<key>UIBackgroundModes</key>

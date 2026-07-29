@@ -1,4 +1,4 @@
-package com.osakalive.app
+package live.osaka
 
 import io.flutter.embedding.android.FlutterActivity
 

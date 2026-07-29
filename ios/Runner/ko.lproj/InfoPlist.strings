@@ -1,2 +1,10 @@
 /* Korean display name */
-CFBundleDisplayName = "마이마캠";
+CFBundleDisplayName = "오사카라이브";
+
+/* Privacy permission descriptions */
+"NSCameraUsageDescription" = "현장 인증용 라이브 영상을 촬영하기 위해 카메라 접근 권한이 필요합니다. 갤러리의 영상은 업로드할 수 없습니다.";
+"NSMicrophoneUsageDescription" = "현장 인증용 라이브 영상과 함께 소리를 녹음하기 위해 마이크 접근 권한이 필요합니다.";
+"NSLocationWhenInUseUsageDescription" = "주변의 오사카 라이브 콘텐츠를 표시하고 지도를 현재 위치로 이동하기 위해 앱 사용 중 위치 정보가 필요합니다.";
+"NSLocationAlwaysAndWhenInUseUsageDescription" = "게시 전에 사용자가 실제로 해당 장소에 있는지 확인하기 위해 앱 사용 중 위치 정보가 필요합니다.";
+"NSPhotoLibraryUsageDescription" = "채팅 또는 프로필 이미지 설정 시 사진을 선택하기 위해 사진 보관함 접근 권한이 필요합니다.";
+"NSLocalNetworkUsageDescription" = "개발 및 디버깅을 위해 로컬 네트워크 접근 권한이 필요합니다.";

@@ -51,7 +51,7 @@ class DefaultFirebaseStagingOptions {
 
   static const FirebaseOptions android = FirebaseOptions(
     apiKey: 'AIzaSyCQ56cN2hoP0ElNJ4XWWcuMFUnispf0xRs',
-    appId: '1:483630909707:android:ff451582c43433a6807a0e',
+    appId: '1:483630909707:android:04cdac923e3dddc6807a0e',
     messagingSenderId: '483630909707',
     projectId: 'osaka-live-503110',
     storageBucket: 'osaka-live-503110.firebasestorage.app',
@@ -59,10 +59,10 @@ class DefaultFirebaseStagingOptions {
 
   static const FirebaseOptions ios = FirebaseOptions(
     apiKey: 'AIzaSyDVIOHM1MdlI5v6JM6_CgVm8SJrD6qI_v8',
-    appId: '1:483630909707:ios:70224e023934df88807a0e',
+    appId: '1:483630909707:ios:c3f2b879fc3e12e2807a0e',
     messagingSenderId: '483630909707',
     projectId: 'osaka-live-503110',
     storageBucket: 'osaka-live-503110.firebasestorage.app',
-    iosBundleId: 'com.osakalive.app.staging',
+    iosBundleId: 'live.osaka.dev.staging',
   );
 }

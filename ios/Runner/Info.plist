@@ -41,12 +41,12 @@
 		<string>We use your microphone to record live camera videos in Osaka Live.</string>
 		<key>NSLocationWhenInUseUsageDescription</key>
 		<string>We use your location to show nearby Osaka live content and update the map around you.</string>
+		<key>NSLocationAlwaysAndWhenInUseUsageDescription</key>
+		<string>Osaka Live uses your location only while you are using the app to show nearby live content and verify where camera recordings are made.</string>
 		<key>NSLocalNetworkUsageDescription</key>
 		<string>This app needs access to local network for development and debugging purposes.</string>
 		<key>NSPhotoLibraryUsageDescription</key>
 		<string>We use your photo library to let you choose a profile photo and attach images when creating a support ticket.</string>
-		<key>NSUserTrackingUsageDescription</key>
-		<string>This app would like to access your advertising identifier to provide personalized ads.</string>
 		<key>UIApplicationSceneManifest</key>
 		<dict>
 			<key>UIApplicationSupportsMultipleScenes</key>

@@ -7,9 +7,9 @@
   "client": [
     {
       "client_info": {
-        "mobilesdk_app_id": "1:483630909707:android:f05695c99e1ef1a1807a0e",
+        "mobilesdk_app_id": "1:483630909707:android:61b275b1193edce4807a0e",
         "android_client_info": {
-          "package_name": "com.osakalive.app"
+          "package_name": "live.osaka"
         }
       },
       "oauth_client": [],
@@ -26,9 +26,9 @@
     },
     {
       "client_info": {
-        "mobilesdk_app_id": "1:483630909707:android:12ed1a79859bd786807a0e",
+        "mobilesdk_app_id": "1:483630909707:android:755074b4c0778933807a0e",
         "android_client_info": {
-          "package_name": "com.osakalive.app.dev"
+          "package_name": "live.osaka.dev"
         }
       },
       "oauth_client": [],
@@ -45,9 +45,9 @@
     },
     {
       "client_info": {
-        "mobilesdk_app_id": "1:483630909707:android:ff451582c43433a6807a0e",
+        "mobilesdk_app_id": "1:483630909707:android:04cdac923e3dddc6807a0e",
         "android_client_info": {
-          "package_name": "com.osakalive.app.staging"
+          "package_name": "live.osaka.staging"
         }
       },
       "oauth_client": [],

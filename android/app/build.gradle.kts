@@ -19,7 +19,7 @@ if (keystorePropertiesFile.exists()) {
 
 
 android {
-    namespace = "com.osakalive.app"
+    namespace = "live.osaka"
     compileSdk = 36
     ndkVersion = "28.2.13676358"
 
@@ -35,12 +35,12 @@ android {
 
     defaultConfig {
         // TODO: Specify your own unique Application ID (https://developer.android.com/studio/build/application-id.html).
-        applicationId = "com.osakalive.app"
+        applicationId = "live.osaka"
         // You can update the following values to match your application needs.
         // For more information, see: https://flutter.dev/to/review-gradle-config.
         minSdk = flutter.minSdkVersion
         targetSdk = flutter.targetSdkVersion
-        versionCode = 1
+        versionCode = 2
         versionName = "1.0.0"
         multiDexEnabled = true
     }
@@ -58,7 +58,7 @@ android {
         }
         create("prod") {
             dimension = "environment"
-            // Không có suffix = base applicationId "com.osakalive.app"
+            // Không có suffix = base applicationId "live.osaka"
         }
     }
 

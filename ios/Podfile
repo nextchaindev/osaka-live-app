@@ -1,3 +1,5 @@
+$FirebaseAnalyticsWithoutAdIdSupport = true
+
 platform :ios, '15.0'
 
 # CocoaPods analytics sends network stats synchronously affecting flutter build latency.
