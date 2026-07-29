@@ -3,13 +3,12 @@ import 'dart:io';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter_inappwebview/flutter_inappwebview.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:version/version.dart';
-import 'package:osaka_app/constants/javascript.dart';
+import 'package:osaka_app/config/env_config.dart';
 import 'package:osaka_app/firebase_options.dart';
 import 'package:osaka_app/firebase_options_dev.dart';
 import 'package:osaka_app/firebase_options_staging.dart';
@@ -149,46 +148,61 @@ class FirebaseConfig {
 
     // If the message also contains a data property with a "type" of "chat",
     // navigate to a chat screen
-    if (initialMessage != null) {
-      saveDeepLink(initialMessage);
+    if (initialMessage != null && context.mounted) {
+      await onMessageOpenApp(context, initialMessage);
     }
 
     // Also handle any interaction when the app is in the background via a
     // Stream listener
-    FirebaseMessaging.onMessageOpenedApp.listen((RemoteMessage message) {
+    FirebaseMessaging.onMessageOpenedApp.listen((RemoteMessage message) async {
       if (context.mounted) {
-        onMessageOpenApp(context, message);
+        await onMessageOpenApp(context, message);
       }
     });
   }
 
-  /// Handle message when app is opened from background
-  void onMessageOpenApp(BuildContext context, RemoteMessage message) async {
+  /// Handle a notification that opened the app from any lifecycle state.
+  Future<void> onMessageOpenApp(
+      BuildContext context, RemoteMessage message) async {
     try {
-      final provider = Provider.of<WebViewProvider>(context, listen: false);
-      InAppWebViewController? webViewController = provider.controller;
-      if (webViewController == null) {
-        saveDeepLink(message);
-      } else {
-        print('onMessageOpenApp');
-        if (message.data['redirectUrl'] != null) {
-          webViewController.evaluateJavascript(
-              source: navigate(message.data['redirectUrl']));
-        }
-        // webViewController.evaluateJavascript(source: navigate('/notification'));
+      final target = _resolveRedirectUrl(message.data['redirectUrl']);
+      if (target == null) {
+        debugPrint(
+          '[OsakaLive][notification] ignored invalid redirectUrl: '
+          '${message.data['redirectUrl']}',
+        );
+        return;
       }
+
+      final provider = Provider.of<WebViewProvider>(context, listen: false);
+      debugPrint(
+        '[OsakaLive][notification] opening ${message.messageId}: $target',
+      );
+      await provider.openDeepLink(target);
     } catch (e) {
-      print("webViewController error => $e");
+      debugPrint('[OsakaLive][notification] open error: $e');
     }
   }
 
-  /// Save deep link from message
-  void saveDeepLink(RemoteMessage message) async {
-    SharedPreferences pref = await SharedPreferences.getInstance();
-    if (message.data['redirectUrl'] != null) {
-      pref.setString("deepLink", message.data['redirectUrl']);
+  Uri? _resolveRedirectUrl(Object? value) {
+    final rawUrl = value?.toString().trim() ?? '';
+    if (rawUrl.isEmpty) {
+      return null;
     }
-    // pref.setString("deepLink", '/notification');
+
+    final parsed = Uri.tryParse(rawUrl);
+    if (parsed == null) {
+      return null;
+    }
+
+    final target = parsed.hasScheme
+        ? parsed
+        : Uri.parse(EnvConfig.instance.webviewUrl).resolveUri(parsed);
+    if (target.scheme != 'http' && target.scheme != 'https') {
+      return null;
+    }
+
+    return target;
   }
 
   /// Setup Flutter local notifications
@@ -229,8 +243,8 @@ class FirebaseConfig {
     flutterLocalNotificationsPlugin = FlutterLocalNotificationsPlugin();
     await flutterLocalNotificationsPlugin.initialize(
       initializationSettings,
-      onDidReceiveNotificationResponse: (NotificationResponse response) {
-        handleNotificationTap(context, response);
+      onDidReceiveNotificationResponse: (NotificationResponse response) async {
+        await handleNotificationTap(context, response);
       },
     );
 
@@ -249,21 +263,22 @@ class FirebaseConfig {
   }
 
   /// Handle notification tap
-  void handleNotificationTap(
-      BuildContext context, NotificationResponse response) {
+  Future<void> handleNotificationTap(
+      BuildContext context, NotificationResponse response) async {
     if (response.payload != null) {
       // Handle the action, like navigating to a specific screen
       print('Notification payload: ${response.payload}');
       try {
         final provider = Provider.of<WebViewProvider>(context, listen: false);
-        provider.handleNotification(response.payload ?? '');
+        final target = _resolveRedirectUrl(response.payload);
+        if (target != null) {
+          await provider.openDeepLink(target);
+        }
       } catch (e) {
         print("err => $e");
       }
       // Navigate to a specific screen or perform some action based on the payload
     }
-    final provider = Provider.of<WebViewProvider>(context, listen: false);
-    // provider.handleNotification('/notification');
   }
 
   /// Show Flutter notification

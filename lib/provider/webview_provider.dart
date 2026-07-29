@@ -32,6 +32,7 @@ class WebViewProvider extends ChangeNotifier {
 
   void setPendingDeepLink(Uri? uri) {
     _pendingDeepLink = uri;
+    unawaited(_flushPendingDeepLink());
   }
 
   void clearPendingDeepLink() {
@@ -41,12 +42,14 @@ class WebViewProvider extends ChangeNotifier {
   void setController(InAppWebViewController? controller) {
     _controller = controller;
     notifyListeners();
+    unawaited(_flushPendingDeepLink());
     _queueLatestLivePosition();
   }
 
   void setWebViewReady(bool isReady) {
     _isWebViewReady = isReady;
     if (_isWebViewReady) {
+      unawaited(_flushPendingDeepLink());
       _queueLatestLivePosition();
       _sendLatestLocationPermission();
     } else {
@@ -55,9 +58,29 @@ class WebViewProvider extends ChangeNotifier {
     }
   }
 
-  void handleNotification(String payload) async {
-    if (_controller != null) {
-      _controller!.evaluateJavascript(source: navigate(payload));
+  Future<void> openDeepLink(Uri uri) async {
+    _pendingDeepLink = uri;
+    await _flushPendingDeepLink();
+  }
+
+  Future<void> _flushPendingDeepLink() async {
+    final controller = _controller;
+    final target = _pendingDeepLink;
+    if (!_isWebViewReady || controller == null || target == null) {
+      return;
+    }
+
+    try {
+      await controller.loadUrl(
+        urlRequest: URLRequest(url: WebUri.uri(target)),
+      );
+      if (_pendingDeepLink == target) {
+        _pendingDeepLink = null;
+      }
+    } catch (error) {
+      debugPrint(
+        '[OsakaLive][notification] failed to open pending link $target: $error',
+      );
     }
   }
 

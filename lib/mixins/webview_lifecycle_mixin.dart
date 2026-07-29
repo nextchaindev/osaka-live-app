@@ -163,19 +163,8 @@ mixin WebViewLifecycleMixin<T extends StatefulWidget> on State<T> {
     required InAppWebViewController? webViewController,
     required VoidCallback onUpdate,
     required PullToRefreshController? pullToRefreshController,
-    required WebViewHelper webViewHelper,
   }) async {
     final loadingProvider = context.read<WebViewProvider>();
-
-    if (webViewController != null) {
-      Uri? uri = url?.uriValue;
-      if (uri != null) {
-        await webViewHelper.handleDeepLink(
-          webViewController: webViewController,
-          path: uri.path + (uri.hasQuery ? '?${uri.query}' : ''),
-        );
-      }
-    }
 
     // await _authRepository.checkUserLoginStatus(
     //   cookieManager: _cookieManager,

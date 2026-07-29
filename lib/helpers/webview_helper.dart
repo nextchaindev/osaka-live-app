@@ -1,8 +1,5 @@
 import 'package:flutter/services.dart';
-import 'package:flutter_inappwebview/flutter_inappwebview.dart';
 import 'package:fluttertoast/fluttertoast.dart';
-import 'package:shared_preferences/shared_preferences.dart';
-import 'package:osaka_app/constants/javascript.dart';
 import 'package:osaka_app/repositories/auth_repository.dart';
 import 'package:osaka_app/widgets/common/toast.dart';
 
@@ -89,29 +86,6 @@ class WebViewHelper {
     } catch (e) {
       return true; // Return true for invalid URLs
     }
-  }
-
-  // ==================== Deep Link Handling ====================
-
-  /// Handle deep link navigation
-  Future<void> handleDeepLink({
-    required InAppWebViewController? webViewController,
-    required String? path,
-  }) async {
-    SharedPreferences pref = await SharedPreferences.getInstance();
-
-    if (pref.getString("deepLink") != null) {
-      webViewController!.evaluateJavascript(
-          source: navigate(pref.getString("deepLink") ?? '/'));
-    }
-
-    await removeDeepLink();
-  }
-
-  /// Remove deep link from storage
-  Future<void> removeDeepLink() async {
-    SharedPreferences pref = await SharedPreferences.getInstance();
-    pref.remove("deepLink");
   }
 
   // ==================== Debug Utilities ====================

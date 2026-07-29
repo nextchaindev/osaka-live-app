@@ -12,7 +12,6 @@ import 'package:osaka_app/mixins/webview_lifecycle_mixin.dart';
 import 'package:osaka_app/provider/download_provider.dart';
 import 'package:osaka_app/provider/webview_provider.dart';
 import 'package:osaka_app/repositories/auth_repository.dart';
-import 'package:osaka_app/widgets/webview/dev_tool_button.dart';
 import 'package:osaka_app/widgets/webview/not_found.dart';
 import 'package:osaka_app/widgets/webview/webview_window.dart';
 import 'package:permission_handler/permission_handler.dart';
@@ -189,7 +188,6 @@ class _WebViewContainerState extends State<WebViewContainer>
                                         }
                                       });
                                     },
-                                    webViewHelper: _webViewHelper,
                                   );
                                 },
                                 onReceivedError: (
