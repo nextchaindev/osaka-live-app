@@ -226,7 +226,7 @@ class _MyHomePageState extends State<MyHomePage>
                         PackageInfo packageInfo =
                             await PackageInfo.fromPlatform();
                         final Uri iosAppStoreUrl = Uri.parse(
-                            "https://apps.apple.com/kr/app/mastercam-korea/id6757072877");
+                            "https://apps.apple.com/kr/app/osaka-live-real-time-travel/id6795804178");
                         final Uri androidPlayStoreUrl = Uri.parse(
                             "https://play.google.com/store/apps/details?id=${packageInfo.packageName}");
                         final targetUrl = Platform.isAndroid

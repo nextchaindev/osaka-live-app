@@ -43,10 +43,10 @@
 	<string>Required to record live verification videos. Gallery uploads are not allowed.</string>
 	<key>NSLocalNetworkUsageDescription</key>
 	<string>This app needs access to local network for development and debugging purposes.</string>
-	<key>NSLocationWhenInUseUsageDescription</key>
-	<string>We use your location to show nearby Osaka live content and update the map around you.</string>
 	<key>NSLocationAlwaysAndWhenInUseUsageDescription</key>
 	<string>Required to verify users are physically at the venue before posting.</string>
+	<key>NSLocationWhenInUseUsageDescription</key>
+	<string>We use your location to show nearby Osaka live content and update the map around you.</string>
 	<key>NSMicrophoneUsageDescription</key>
 	<string>Required to record audio together with the live verification video.</string>
 	<key>NSPhotoLibraryUsageDescription</key>

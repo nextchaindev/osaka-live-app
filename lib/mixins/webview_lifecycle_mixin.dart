@@ -113,15 +113,6 @@ mixin WebViewLifecycleMixin<T extends StatefulWidget> on State<T> {
       // ignore: use_build_context_synchronously
       context: context,
     );
-
-    // Load pending deep link after all initialization is complete
-    // ignore: use_build_context_synchronously
-    final provider = Provider.of<WebViewProvider>(context, listen: false);
-    if (provider.pendingDeepLink != null) {
-      controller.loadUrl(
-          urlRequest: URLRequest(url: WebUri.uri(provider.pendingDeepLink!)));
-      provider.clearPendingDeepLink();
-    }
   }
 
   // ==================== Load Start ====================

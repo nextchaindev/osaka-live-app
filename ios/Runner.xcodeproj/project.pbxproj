@@ -37,6 +37,7 @@
 		A1F0B1142F1A000100000001 /* InfoPlist.strings in Resources */ = {isa = PBXBuildFile; fileRef = A1F0B1102F1A000100000001 /* InfoPlist.strings */; };
 		A1F0B1152F1A000100000001 /* InfoPlist.strings in Resources */ = {isa = PBXBuildFile; fileRef = A1F0B1102F1A000100000001 /* InfoPlist.strings */; };
 		B4404B647BBA5C9A8A6E97A4 /* Pods_Runner.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 816365B882D86776FC83EB7B /* Pods_Runner.framework */; };
+		C0D3F1A62F1A100100000001 /* GoogleService-Info.plist in Resources */ = {isa = PBXBuildFile; fileRef = 16EC999D16178104F13DB978 /* GoogleService-Info.plist */; };
 		C22FA7183BE3B1ED2F8D0454 /* Pods_Runner_staging.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 15F0791E20E75B9A8D8D2F87 /* Pods_Runner_staging.framework */; };
 		DF2BEA4D00EFD51B1C356B2F /* Pods_Runner_dev.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 732C9421F8E31473975CAD6E /* Pods_Runner_dev.framework */; };
 		E3C2DB73F58DF60D4F94E16C /* Pods_Runner_prod.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 737F463FF587C67B472CBE68 /* Pods_Runner_prod.framework */; };
@@ -578,6 +579,7 @@
 				04615E8B2EFCF48700AD456C /* AppFrameworkInfo.plist in Resources */,
 				04615E8C2EFCF48700AD456C /* Assets.xcassets in Resources */,
 				04615E8D2EFCF48700AD456C /* Main.storyboard in Resources */,
+				C0D3F1A62F1A100100000001 /* GoogleService-Info.plist in Resources */,
 				A1F0B1152F1A000100000001 /* InfoPlist.strings in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
@@ -1091,7 +1093,7 @@
 					"@executable_path/Frameworks",
 				);
 				MARKETING_VERSION = 1.0.0;
-				PRODUCT_BUNDLE_IDENTIFIER = live.osaka;
+				PRODUCT_BUNDLE_IDENTIFIER = live.osaka.dev;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				PROVISIONING_PROFILE_SPECIFIER = "";
 				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
@@ -1127,7 +1129,7 @@
 					"@executable_path/Frameworks",
 				);
 				MARKETING_VERSION = 1.0.0;
-				PRODUCT_BUNDLE_IDENTIFIER = live.osaka;
+				PRODUCT_BUNDLE_IDENTIFIER = live.osaka.dev;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				PROVISIONING_PROFILE_SPECIFIER = "";
 				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
@@ -1162,7 +1164,7 @@
 					"@executable_path/Frameworks",
 				);
 				MARKETING_VERSION = 1.0.0;
-				PRODUCT_BUNDLE_IDENTIFIER = live.osaka;
+				PRODUCT_BUNDLE_IDENTIFIER = live.osaka.dev;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				PROVISIONING_PROFILE_SPECIFIER = "";
 				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
@@ -1397,7 +1399,7 @@
 					"@executable_path/Frameworks",
 				);
 				MARKETING_VERSION = 1.0.0;
-				PRODUCT_BUNDLE_IDENTIFIER = live.osaka;
+				PRODUCT_BUNDLE_IDENTIFIER = live.osaka.dev;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				PROVISIONING_PROFILE_SPECIFIER = "";
 				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
@@ -1563,7 +1565,7 @@
 					"@executable_path/Frameworks",
 				);
 				MARKETING_VERSION = 1.0.0;
-				PRODUCT_BUNDLE_IDENTIFIER = live.osaka;
+				PRODUCT_BUNDLE_IDENTIFIER = live.osaka.dev;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				PROVISIONING_PROFILE_SPECIFIER = "";
 				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
@@ -1727,7 +1729,7 @@
 					"@executable_path/Frameworks",
 				);
 				MARKETING_VERSION = 1.0.0;
-				PRODUCT_BUNDLE_IDENTIFIER = live.osaka;
+				PRODUCT_BUNDLE_IDENTIFIER = live.osaka.dev;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				PROVISIONING_PROFILE_SPECIFIER = "";
 				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
@@ -1897,7 +1899,7 @@
 					"@executable_path/Frameworks",
 				);
 				MARKETING_VERSION = 1.0.0;
-				PRODUCT_BUNDLE_IDENTIFIER = live.osaka;
+				PRODUCT_BUNDLE_IDENTIFIER = live.osaka.dev;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				PROVISIONING_PROFILE_SPECIFIER = "";
 				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
@@ -2061,7 +2063,7 @@
 					"@executable_path/Frameworks",
 				);
 				MARKETING_VERSION = 1.0.0;
-				PRODUCT_BUNDLE_IDENTIFIER = live.osaka;
+				PRODUCT_BUNDLE_IDENTIFIER = live.osaka.dev;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				PROVISIONING_PROFILE_SPECIFIER = "";
 				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
@@ -2223,7 +2225,7 @@
 					"@executable_path/Frameworks",
 				);
 				MARKETING_VERSION = 1.0.0;
-				PRODUCT_BUNDLE_IDENTIFIER = live.osaka;
+				PRODUCT_BUNDLE_IDENTIFIER = live.osaka.dev;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				PROVISIONING_PROFILE_SPECIFIER = "";
 				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
@@ -2283,7 +2285,7 @@
 				ENABLE_BITCODE = NO;
 				ENVIRONMENT = prod;
 				INFOPLIST_FILE = "Runner/Prod-Info.plist";
-				INFOPLIST_KEY_CFBundleDisplayName = "Webview Init Dev";
+				INFOPLIST_KEY_CFBundleDisplayName = "Osaka Live";
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/Frameworks",
@@ -2317,7 +2319,7 @@
 				ENABLE_BITCODE = NO;
 				ENVIRONMENT = staging;
 				INFOPLIST_FILE = "Runner/Prod-Info.plist";
-				INFOPLIST_KEY_CFBundleDisplayName = "Webview Init Dev";
+				INFOPLIST_KEY_CFBundleDisplayName = "Osaka Live";
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/Frameworks",
@@ -2351,7 +2353,7 @@
 				ENABLE_BITCODE = NO;
 				ENVIRONMENT = dev;
 				INFOPLIST_FILE = "Runner/Prod-Info.plist";
-				INFOPLIST_KEY_CFBundleDisplayName = "Webview Init Dev";
+				INFOPLIST_KEY_CFBundleDisplayName = "Osaka Live";
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/Frameworks",
@@ -2385,7 +2387,7 @@
 				ENABLE_BITCODE = NO;
 				ENVIRONMENT = prod;
 				INFOPLIST_FILE = "Runner/Prod-Info.plist";
-				INFOPLIST_KEY_CFBundleDisplayName = "Webview Init Dev";
+				INFOPLIST_KEY_CFBundleDisplayName = "Osaka Live";
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/Frameworks",
@@ -2418,7 +2420,7 @@
 				ENABLE_BITCODE = NO;
 				ENVIRONMENT = staging;
 				INFOPLIST_FILE = "Runner/Prod-Info.plist";
-				INFOPLIST_KEY_CFBundleDisplayName = "Webview Init Dev";
+				INFOPLIST_KEY_CFBundleDisplayName = "Osaka Live";
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/Frameworks",
@@ -2451,7 +2453,7 @@
 				ENABLE_BITCODE = NO;
 				ENVIRONMENT = dev;
 				INFOPLIST_FILE = "Runner/Prod-Info.plist";
-				INFOPLIST_KEY_CFBundleDisplayName = "Webview Init Dev";
+				INFOPLIST_KEY_CFBundleDisplayName = "Osaka Live";
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/Frameworks",
@@ -2484,7 +2486,7 @@
 				ENABLE_BITCODE = NO;
 				ENVIRONMENT = prod;
 				INFOPLIST_FILE = "Runner/Prod-Info.plist";
-				INFOPLIST_KEY_CFBundleDisplayName = "Webview Init Dev";
+				INFOPLIST_KEY_CFBundleDisplayName = "Osaka Live";
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/Frameworks",
@@ -2517,7 +2519,7 @@
 				ENABLE_BITCODE = NO;
 				ENVIRONMENT = staging;
 				INFOPLIST_FILE = "Runner/Prod-Info.plist";
-				INFOPLIST_KEY_CFBundleDisplayName = "Webview Init Dev";
+				INFOPLIST_KEY_CFBundleDisplayName = "Osaka Live";
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/Frameworks",
@@ -2550,7 +2552,7 @@
 				ENABLE_BITCODE = NO;
 				ENVIRONMENT = dev;
 				INFOPLIST_FILE = "Runner/Prod-Info.plist";
-				INFOPLIST_KEY_CFBundleDisplayName = "Webview Init Dev";
+				INFOPLIST_KEY_CFBundleDisplayName = "Osaka Live";
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/Frameworks",

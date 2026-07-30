@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:package_info_plus/package_info_plus.dart';
 import 'package:provider/provider.dart';
 import 'package:osaka_app/config/env_config.dart';
 import 'package:osaka_app/config/firebase_config.dart';
@@ -27,13 +28,27 @@ Future<void> _firebaseMessagingBackgroundHandler(RemoteMessage message) async {
   // Handle background message here
 }
 
+Future<String> _resolveEnvironment() async {
+  const definedEnvironment = String.fromEnvironment('ENVIRONMENT');
+  if (definedEnvironment.isNotEmpty) {
+    return definedEnvironment;
+  }
+
+  final bundleId = (await PackageInfo.fromPlatform()).packageName;
+  return switch (bundleId) {
+    'live.osaka' => 'prod',
+    'live.osaka.staging' || 'live.osaka.dev.staging' => 'staging',
+    _ => 'dev',
+  };
+}
+
 Future main() async {
   WidgetsFlutterBinding.ensureInitialized();
   try {
-    const environment =
-        String.fromEnvironment('ENVIRONMENT', defaultValue: 'dev');
+    final environment = await _resolveEnvironment();
     await EnvConfig.initialize(environment);
     await FirebaseConfig.initializeFirebaseApp(environment);
+    await FirebaseConfig.instance.captureInitialMessage();
 
     // Register background message handler (must be top-level function)
     FirebaseMessaging.onBackgroundMessage(_firebaseMessagingBackgroundHandler);

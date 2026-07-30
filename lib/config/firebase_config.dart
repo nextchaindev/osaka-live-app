@@ -26,6 +26,7 @@ class FirebaseConfig {
   bool isFlutterLocalNotificationsInitialized = false;
   late FlutterLocalNotificationsPlugin flutterLocalNotificationsPlugin;
   String? messId;
+  RemoteMessage? _initialMessage;
 
   static const _localVersionKey = 'firebase_app_version';
   static const _localBuildKey = 'firebase_app_build';
@@ -139,12 +140,20 @@ class FirebaseConfig {
     }
   }
 
+  /// Capture the cold-start notification before the widget tree and WebView
+  /// begin loading. Release builds initialize much faster than debug builds,
+  /// so deferring this until a widget's initState can introduce a race.
+  Future<void> captureInitialMessage() async {
+    _initialMessage ??= await FirebaseMessaging.instance.getInitialMessage();
+  }
+
   /// Setup message interaction handlers
   Future<void> setupInteractedMessage(BuildContext context) async {
     // Get any messages which caused the application to open from
     // a terminated state.
-    RemoteMessage? initialMessage =
-        await FirebaseMessaging.instance.getInitialMessage();
+    final initialMessage =
+        _initialMessage ?? await FirebaseMessaging.instance.getInitialMessage();
+    _initialMessage = null;
 
     // If the message also contains a data property with a "type" of "chat",
     // navigate to a chat screen

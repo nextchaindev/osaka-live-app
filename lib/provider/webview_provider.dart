@@ -20,6 +20,7 @@ class WebViewProvider extends ChangeNotifier {
   Map<String, dynamic>? _pendingLivePositionPayload;
   String? _lastLivePositionJson;
   DateTime? _lastLivePositionSentAt;
+  bool _isOpeningDeepLink = false;
   bool _isFlushingLivePosition = false;
   bool _isWebViewReady = false;
   Map<String, dynamic>? _latestLocationPermissionPayload;
@@ -28,15 +29,10 @@ class WebViewProvider extends ChangeNotifier {
       Duration(milliseconds: 500);
 
   InAppWebViewController? get controller => _controller;
-  Uri? get pendingDeepLink => _pendingDeepLink;
 
   void setPendingDeepLink(Uri? uri) {
     _pendingDeepLink = uri;
     unawaited(_flushPendingDeepLink());
-  }
-
-  void clearPendingDeepLink() {
-    _pendingDeepLink = null;
   }
 
   void setController(InAppWebViewController? controller) {
@@ -66,11 +62,16 @@ class WebViewProvider extends ChangeNotifier {
   Future<void> _flushPendingDeepLink() async {
     final controller = _controller;
     final target = _pendingDeepLink;
-    if (!_isWebViewReady || controller == null || target == null) {
+    if (_isOpeningDeepLink ||
+        !_isWebViewReady ||
+        controller == null ||
+        target == null) {
       return;
     }
 
+    _isOpeningDeepLink = true;
     try {
+      debugPrint('[OsakaLive][notification] loading pending link: $target');
       await controller.loadUrl(
         urlRequest: URLRequest(url: WebUri.uri(target)),
       );
@@ -81,6 +82,11 @@ class WebViewProvider extends ChangeNotifier {
       debugPrint(
         '[OsakaLive][notification] failed to open pending link $target: $error',
       );
+    } finally {
+      _isOpeningDeepLink = false;
+      if (_pendingDeepLink != null && _isWebViewReady) {
+        unawaited(_flushPendingDeepLink());
+      }
     }
   }
 
