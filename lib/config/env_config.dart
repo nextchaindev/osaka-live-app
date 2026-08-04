@@ -22,6 +22,9 @@ class EnvConfig {
   String get baseUrl => dotenv.env['BASE_URL'] ?? '';
   String get apiKey => dotenv.env['API_KEY'] ?? '';
   String get appScheme => dotenv.env['APP_SCHEME'] ?? '';
+  String get googleServerClientId =>
+      dotenv.env['GOOGLE_SERVER_CLIENT_ID'] ?? '';
+  String get googleIosClientId => dotenv.env['GOOGLE_IOS_CLIENT_ID'] ?? '';
 
   /// Get config value by key
   String getValue(String key, {String defaultValue = ''}) {

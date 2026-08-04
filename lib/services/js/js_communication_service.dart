@@ -4,11 +4,13 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_inappwebview/flutter_inappwebview.dart';
 import 'package:fluttertoast/fluttertoast.dart';
+import 'package:osaka_app/constants/javascript.dart';
 import 'package:osaka_app/helpers/webview_helper.dart';
 import 'package:osaka_app/models/web_post_message.dart';
 import 'package:osaka_app/provider/webview_provider.dart';
 import 'package:osaka_app/repositories/auth_repository.dart';
 import 'package:osaka_app/screens/camera/custom_camera_screen.dart';
+import 'package:osaka_app/services/auth/social_login_service.dart';
 import 'package:osaka_app/services/location/location_sync_service.dart';
 import 'package:osaka_app/services/permission/permission_service.dart';
 import 'package:provider/provider.dart';
@@ -34,7 +36,7 @@ class JsCommunicationService {
         authRepository.checkUserLoginStatus(
           cookieManager: cookieManager,
           url: webViewUrl,
-          name: "accessToken",
+          name: "osaka_access",
         );
 
         context.read<WebViewProvider>().setCurrentUrl(currentUrl);
@@ -59,6 +61,7 @@ class JsCommunicationService {
     fToast.init(context);
     final permissionService = PermissionService();
     final locationSyncService = LocationSyncService();
+    final trustedOrigin = Uri.parse(webViewUrl).origin;
 
     Future<void> sendLocationPermissionPayload(
       Map<String, dynamic> payload,
@@ -131,12 +134,39 @@ class JsCommunicationService {
       );
     }
 
+    Future<void> handleSocialLogin(Map<String, dynamic> message) async {
+      final provider = message['provider']?.toString() ?? '';
+      final requestId = message['requestId']?.toString() ?? '';
+      if (provider.isEmpty || requestId.isEmpty) {
+        return;
+      }
+
+      final result = await SocialLoginService.instance.signIn(provider);
+      await controller.evaluateJavascript(
+        source: pushSocialLoginResult(
+          status: result.status,
+          provider: result.provider,
+          requestId: requestId,
+          idToken: result.idToken,
+          errorCode: result.errorCode,
+        ),
+      );
+    }
+
     if (defaultTargetPlatform != TargetPlatform.android ||
         await WebViewFeature.isFeatureSupported(
             WebViewFeature.WEB_MESSAGE_LISTENER)) {
       await controller.addWebMessageListener(WebMessageListener(
         jsObjectName: "webviewListener",
         onPostMessage: (message, sourceOrigin, isMainFrame, replyProxy) async {
+          final sourceUri = Uri.tryParse(sourceOrigin?.toString() ?? '');
+          if (isMainFrame != true || sourceUri?.origin != trustedOrigin) {
+            debugPrint(
+              'Ignored WebView message from untrusted origin: $sourceOrigin',
+            );
+            return;
+          }
+
           print("message: $message");
           if (message != null && message.data != null) {
             final rawMessage = message.data.toString();
@@ -150,6 +180,12 @@ class JsCommunicationService {
               if (decoded is Map<String, dynamic> &&
                   decoded['type'] == 'record_camera') {
                 await openCustomCamera();
+                return;
+              }
+
+              if (decoded is Map<String, dynamic> &&
+                  decoded['type'] == 'social_login') {
+                await handleSocialLogin(decoded);
                 return;
               }
 

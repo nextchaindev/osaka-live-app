@@ -166,6 +166,24 @@ String pushCameraResult({
   """;
 }
 
+String pushSocialLoginResult({
+  required String status,
+  required String provider,
+  required String requestId,
+  String? idToken,
+  String? errorCode,
+}) {
+  final payload = <String, dynamic>{
+    'status': status,
+    'provider': provider,
+    'requestId': requestId,
+    if (idToken != null) 'idToken': idToken,
+    if (errorCode != null) 'errorCode': errorCode,
+  };
+
+  return _dispatchCustomEvent('osaka-live-social-login-result', payload);
+}
+
 String pushCameraFileStart({
   required String transferId,
   required String fileName,
