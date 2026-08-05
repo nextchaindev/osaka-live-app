@@ -138,19 +138,44 @@ class JsCommunicationService {
       final provider = message['provider']?.toString() ?? '';
       final requestId = message['requestId']?.toString() ?? '';
       if (provider.isEmpty || requestId.isEmpty) {
+        debugPrint(
+          '[SNS][Flutter bridge] rejected invalid request '
+          'provider=$provider requestId=$requestId',
+        );
         return;
       }
 
-      final result = await SocialLoginService.instance.signIn(provider);
-      await controller.evaluateJavascript(
-        source: pushSocialLoginResult(
-          status: result.status,
-          provider: result.provider,
-          requestId: requestId,
-          idToken: result.idToken,
-          errorCode: result.errorCode,
-        ),
+      debugPrint(
+        '[SNS][Flutter bridge] request received '
+        'provider=$provider requestId=$requestId',
       );
+      final result = await SocialLoginService.instance.signIn(provider);
+      debugPrint(
+        '[SNS][Flutter bridge] dispatching result '
+        'provider=$provider requestId=$requestId status=${result.status} '
+        'errorCode=${result.errorCode ?? '-'} '
+        'hasIdToken=${result.idToken?.isNotEmpty == true}',
+      );
+      try {
+        await controller.evaluateJavascript(
+          source: pushSocialLoginResult(
+            status: result.status,
+            provider: result.provider,
+            requestId: requestId,
+            idToken: result.idToken,
+            errorCode: result.errorCode,
+          ),
+        );
+        debugPrint(
+          '[SNS][Flutter bridge] result dispatched requestId=$requestId',
+        );
+      } catch (error, stackTrace) {
+        debugPrint(
+          '[SNS][Flutter bridge] result dispatch failed '
+          'requestId=$requestId error=$error',
+        );
+        debugPrintStack(stackTrace: stackTrace);
+      }
     }
 
     if (defaultTargetPlatform != TargetPlatform.android ||
