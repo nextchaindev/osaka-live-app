@@ -2,13 +2,25 @@ import 'dart:io';
 
 import 'package:device_info_plus/device_info_plus.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
+import 'package:flutter/foundation.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:permission_handler/permission_handler.dart'
     as permission_handler;
+import 'package:shared_preferences/shared_preferences.dart';
 
 /// Service for handling app permissions
 /// Centralizes all permission-related business logic
 class PermissionService {
+  static const _locationPermissionRequestedKey =
+      'location_permission_requested';
+  static const _iosLocationPermissionRequestedKey =
+      'ios_location_permission_requested_v3';
+
+  permission_handler.Permission get _foregroundLocationPermission =>
+      Platform.isIOS
+          ? permission_handler.Permission.locationWhenInUse
+          : permission_handler.Permission.location;
+
   // ==================== Storage Permission ====================
 
   /// Request storage permission for file downloads
@@ -146,7 +158,7 @@ class PermissionService {
   // ==================== Location Permission ====================
 
   Future<Map<String, dynamic>> getLocationPermissionPayload() async {
-    final status = await permission_handler.Permission.location.status;
+    final status = await _foregroundLocationPermission.status;
     final serviceEnabled = await Geolocator.isLocationServiceEnabled();
 
     return {
@@ -157,26 +169,91 @@ class PermissionService {
   }
 
   Future<Map<String, dynamic>> requestLocationPermission() async {
-    var status = await permission_handler.Permission.location.status;
+    final locationPermission = _foregroundLocationPermission;
+    var status = await locationPermission.status;
+    debugPrint(
+      '[OsakaLive][location][permission] request start status=${_locationStatusName(status)}',
+    );
 
-    if (status.isDenied) {
-      status = await permission_handler.Permission.location.request();
-    }
-
-    if (status.isPermanentlyDenied || status.isRestricted) {
+    if (Platform.isIOS && status.isDenied) {
+      final preferences = await SharedPreferences.getInstance();
+      final hasRequested =
+          preferences.getBool(_iosLocationPermissionRequestedKey) ?? false;
+      if (hasRequested) {
+        await permission_handler.openAppSettings();
+      } else {
+        await preferences.setBool(_iosLocationPermissionRequestedKey, true);
+        status = await locationPermission.request();
+      }
+    } else if (status.isPermanentlyDenied || status.isRestricted) {
+      debugPrint(
+        '[OsakaLive][location][permission] opening app settings status=${_locationStatusName(status)}',
+      );
       await permission_handler.openAppSettings();
+    } else if (status.isDenied) {
+      status = await locationPermission.request();
+      debugPrint(
+        '[OsakaLive][location][permission] request result status=${_locationStatusName(status)}',
+      );
     }
 
-    final serviceEnabled = await Geolocator.isLocationServiceEnabled();
+    status = await locationPermission.status;
+    var serviceEnabled = await Geolocator.isLocationServiceEnabled();
     if (status.isGranted && !serviceEnabled) {
       await Geolocator.openLocationSettings();
+      serviceEnabled = await Geolocator.isLocationServiceEnabled();
     }
 
+    debugPrint(
+      '[OsakaLive][location][permission] request complete status=${_locationStatusName(status)} serviceEnabled=$serviceEnabled',
+    );
     return {
       'status': _locationStatusName(status),
       'serviceEnabled': serviceEnabled,
       'updatedAt': DateTime.now().millisecondsSinceEpoch,
     };
+  }
+
+  Future<Map<String, dynamic>> requestInitialLocationPermission() async {
+    final locationPermission = _foregroundLocationPermission;
+    final status = await locationPermission.status;
+    if (!Platform.isAndroid) {
+      if (status.isGranted ||
+          status.isPermanentlyDenied ||
+          status.isRestricted) {
+        return getLocationPermissionPayload();
+      }
+
+      final preferences = await SharedPreferences.getInstance();
+      final hasRequested =
+          preferences.getBool(_iosLocationPermissionRequestedKey) ?? false;
+      if (hasRequested) {
+        return getLocationPermissionPayload();
+      }
+
+      await preferences.setBool(_iosLocationPermissionRequestedKey, true);
+      await locationPermission.request();
+      return getLocationPermissionPayload();
+    }
+
+    final preferences = await SharedPreferences.getInstance();
+    final hasRequested =
+        preferences.getBool(_locationPermissionRequestedKey) ?? false;
+    if (hasRequested) {
+      return getLocationPermissionPayload();
+    }
+
+    await preferences.setBool(_locationPermissionRequestedKey, true);
+    final wasPreviouslyDenied = status.isDenied &&
+        await permission_handler.Permission.location.shouldShowRequestRationale;
+    if (status.isGranted ||
+        status.isPermanentlyDenied ||
+        status.isRestricted ||
+        wasPreviouslyDenied) {
+      return getLocationPermissionPayload();
+    }
+
+    return requestLocationPermission();
   }
 
   String _locationStatusName(permission_handler.PermissionStatus status) {

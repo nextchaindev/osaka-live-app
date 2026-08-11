@@ -244,12 +244,16 @@ class _WebViewContainerState extends State<WebViewContainer>
                                 },
                                 onGeolocationPermissionsShowPrompt:
                                     (controller, origin) async {
-                                  await Permission.location.request();
+                                  final locationPermission = Platform.isIOS
+                                      ? Permission.locationWhenInUse
+                                      : Permission.location;
+                                  final status =
+                                      await locationPermission.status;
                                   return Future.value(
                                       GeolocationPermissionShowPromptResponse(
                                           origin: origin,
-                                          allow: true,
-                                          retain: true));
+                                          allow: status.isGranted,
+                                          retain: status.isGranted));
                                 },
                                 onPermissionRequest:
                                     (controller, request) async {

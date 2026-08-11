@@ -10,6 +10,7 @@ import 'package:osaka_app/helpers/icons.dart';
 import 'package:osaka_app/provider/webview_provider.dart';
 import 'package:osaka_app/repositories/auth_repository.dart';
 import 'package:osaka_app/services/location/location_sync_service.dart';
+import 'package:osaka_app/services/permission/permission_service.dart';
 import 'package:osaka_app/widgets/common/dialog.dart';
 import 'package:osaka_app/widgets/splash_overlay/index.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
@@ -79,7 +80,7 @@ class _MyHomePageState extends State<MyHomePage>
           loadingProvider.resetLoading();
         }
 
-        _startLocationSync();
+        unawaited(_requestInitialLocationPermissionAndSync());
       }
     });
 
@@ -156,6 +157,44 @@ class _MyHomePageState extends State<MyHomePage>
         );
       },
     );
+  }
+
+  Future<void> _refreshLocationPermissionAndSync() async {
+    if (!mounted) {
+      return;
+    }
+
+    final permissionPayload =
+        await PermissionService().getLocationPermissionPayload();
+    if (!mounted) {
+      return;
+    }
+
+    await context.read<WebViewProvider>().sendLocationPermissionStatus(
+          status: permissionPayload['status'] as String,
+          serviceEnabled: permissionPayload['serviceEnabled'] as bool,
+          updatedAt: (permissionPayload['updatedAt'] as num?)?.toInt(),
+        );
+    _startLocationSync();
+  }
+
+  Future<void> _requestInitialLocationPermissionAndSync() async {
+    if (!mounted) {
+      return;
+    }
+
+    final permissionPayload =
+        await PermissionService().requestInitialLocationPermission();
+    if (!mounted) {
+      return;
+    }
+
+    await context.read<WebViewProvider>().sendLocationPermissionStatus(
+          status: permissionPayload['status'] as String,
+          serviceEnabled: permissionPayload['serviceEnabled'] as bool,
+          updatedAt: (permissionPayload['updatedAt'] as num?)?.toInt(),
+        );
+    _startLocationSync();
   }
 
   void _showForceUpdateDialog() {
@@ -327,7 +366,7 @@ class _MyHomePageState extends State<MyHomePage>
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
     if (state == AppLifecycleState.resumed && mounted) {
-      _startLocationSync();
+      unawaited(_refreshLocationPermissionAndSync());
     }
   }
 

@@ -1,5 +1,6 @@
 /* Korean display name */
 CFBundleDisplayName = "오사카라이브";
+CFBundleName = "오사카라이브";
 
 /* Privacy permission descriptions */
 "NSCameraUsageDescription" = "현장 인증용 라이브 영상을 촬영하기 위해 카메라 접근 권한이 필요합니다. 갤러리의 영상은 업로드할 수 없습니다.";
