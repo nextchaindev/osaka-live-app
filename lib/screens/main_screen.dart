@@ -429,20 +429,20 @@ class _MyHomePageState extends State<MyHomePage>
                   _splashHideTimer?.cancel();
                   _shouldHideSplash = false;
                 }
-                  final disableTopSafeArea = 
-                  routeNoSafeArea.any((route) =>
-                    webviewProvider.currentUrl.contains(route) )||
-                    webviewProvider.currentUrl ==
-                        EnvConfig.instance.webviewUrl;               
-                 return Stack(
+                final disableTopSafeArea = routeNoSafeArea.any((route) =>
+                        webviewProvider.currentUrl.contains(route)) ||
+                    webviewProvider.currentUrl == EnvConfig.instance.webviewUrl;
+                final disableBottomSafeArea = routeNoBottomSafeArea
+                    .any((route) => webviewProvider.currentUrl.contains(route));
+                return Stack(
                   children: [
                     Opacity(
                       opacity: isLoaded ? 1.0 : 0.0,
                       child: Container(
                         color: Colors.white,
                         child: SafeArea(
-                          top: !disableTopSafeArea ,
-                          bottom: true,
+                          top: !disableTopSafeArea,
+                          bottom: !disableBottomSafeArea,
                           child: Navigator(
                             key: _navigatorKeys[0],
                             onGenerateRoute: (routeSettings) {
