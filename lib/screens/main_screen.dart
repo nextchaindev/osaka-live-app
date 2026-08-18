@@ -4,7 +4,6 @@ import 'package:app_links/app_links.dart';
 import 'package:osaka_app/config/env_config.dart';
 import 'package:osaka_app/constants/common.dart';
 import 'package:osaka_app/config/app_remote_config.dart';
-import 'package:osaka_app/extends/colors.dart';
 import 'package:osaka_app/helpers/Themes.dart';
 import 'package:osaka_app/helpers/icons.dart';
 import 'package:osaka_app/provider/webview_provider.dart';

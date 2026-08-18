@@ -143,11 +143,6 @@ class PermissionService {
         return true;
       }
 
-      if (cameraStatus.isPermanentlyDenied ||
-          microphoneStatus.isPermanentlyDenied) {
-        await permission_handler.openAppSettings();
-      }
-
       return false;
     } catch (e) {
       print('Error requesting camera/microphone permission: $e');
@@ -179,17 +174,14 @@ class PermissionService {
       final preferences = await SharedPreferences.getInstance();
       final hasRequested =
           preferences.getBool(_iosLocationPermissionRequestedKey) ?? false;
-      if (hasRequested) {
-        await permission_handler.openAppSettings();
-      } else {
+      if (!hasRequested) {
         await preferences.setBool(_iosLocationPermissionRequestedKey, true);
         status = await locationPermission.request();
       }
     } else if (status.isPermanentlyDenied || status.isRestricted) {
       debugPrint(
-        '[OsakaLive][location][permission] opening app settings status=${_locationStatusName(status)}',
+        '[OsakaLive][location][permission] permission unavailable status=${_locationStatusName(status)}',
       );
-      await permission_handler.openAppSettings();
     } else if (status.isDenied) {
       status = await locationPermission.request();
       debugPrint(
@@ -198,11 +190,7 @@ class PermissionService {
     }
 
     status = await locationPermission.status;
-    var serviceEnabled = await Geolocator.isLocationServiceEnabled();
-    if (status.isGranted && !serviceEnabled) {
-      await Geolocator.openLocationSettings();
-      serviceEnabled = await Geolocator.isLocationServiceEnabled();
-    }
+    final serviceEnabled = await Geolocator.isLocationServiceEnabled();
 
     debugPrint(
       '[OsakaLive][location][permission] request complete status=${_locationStatusName(status)} serviceEnabled=$serviceEnabled',

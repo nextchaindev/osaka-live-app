@@ -13,6 +13,7 @@ import 'package:osaka_app/screens/camera/custom_camera_screen.dart';
 import 'package:osaka_app/services/auth/social_login_service.dart';
 import 'package:osaka_app/services/location/location_sync_service.dart';
 import 'package:osaka_app/services/permission/permission_service.dart';
+import 'package:osaka_app/widgets/common/dialog.dart';
 import 'package:provider/provider.dart';
 import 'package:share_plus/share_plus.dart';
 
@@ -60,6 +61,7 @@ class JsCommunicationService {
     final fToast = FToast();
     fToast.init(context);
     final permissionService = PermissionService();
+    final appDialog = AppDialog();
     final locationSyncService = LocationSyncService();
     final trustedOrigin = Uri.parse(webViewUrl).origin;
 
@@ -112,13 +114,16 @@ class JsCommunicationService {
           return;
         }
 
-        Fluttertoast.showToast(
-          msg: 'Camera and microphone permissions are required.',
-          toastLength: Toast.LENGTH_SHORT,
-          gravity: ToastGravity.BOTTOM,
-          backgroundColor: Colors.black87,
-          textColor: Colors.white,
+        final openSettings = await appDialog.showPermissionDialog(
+          context,
+          title: '카메라와 마이크 권한이 필요합니다',
+          message:
+              '라이브 영상을 촬영하려면 카메라와 마이크 권한이 필요합니다.\n\n설정에서 권한을 허용해 주세요.',
+          icon: Icons.videocam_outlined,
         );
+        if (openSettings) {
+          await permissionService.openAppSettings();
+        }
         return;
       }
 
@@ -232,6 +237,20 @@ class JsCommunicationService {
                     await permissionService.requestLocationPermission();
                 await sendLocationPermissionPayload(permissionPayload);
                 await startLocationSyncIfAllowed(permissionPayload);
+                if (context.mounted &&
+                    (permissionPayload['status'] != 'granted' ||
+                        permissionPayload['serviceEnabled'] != true)) {
+                  final openSettings = await appDialog.showPermissionDialog(
+                    context,
+                    title: '위치 권한이 필요합니다',
+                    message:
+                        '주변 라이브 콘텐츠를 확인하고 지도를 업데이트하려면 위치 권한이 필요합니다.\n\n설정에서 권한을 허용해 주세요.',
+                    icon: Icons.location_on_outlined,
+                  );
+                  if (openSettings) {
+                    await permissionService.openAppSettings();
+                  }
+                }
               } else if (postedMessage.type == 'copy-fcm-token') {
                 await WebViewHelper().handleCopyFCMToken(fToast);
               } else if (postedMessage.type == 'download_file') {
