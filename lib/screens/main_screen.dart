@@ -201,9 +201,8 @@ class _MyHomePageState extends State<MyHomePage>
       context: context,
       barrierDismissible: false,
       builder: (dialogContext) {
-        // ignore: deprecated_member_use
-        return WillPopScope(
-          onWillPop: () async => false,
+        return PopScope(
+          canPop: false,
           child: Dialog(
             shape:
                 RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
@@ -397,9 +396,13 @@ class _MyHomePageState extends State<MyHomePage>
       statusBarIconBrightness: Brightness.light,
       statusBarBrightness: Brightness.dark,
     ));
-    // ignore: deprecated_member_use
-    return WillPopScope(
-      onWillPop: () => _navigateBack(context),
+    return PopScope(
+      canPop: false,
+      onPopInvokedWithResult: (didPop, result) {
+        if (!didPop) {
+          unawaited(_navigateBack(context));
+        }
+      },
       child: GestureDetector(
         onTap: () =>
             context.read<NavigationBarProvider>().animationController.reverse(),
