@@ -29,6 +29,7 @@ class _CustomCameraScreenState extends State<CustomCameraScreen>
   bool _isRecording = false;
   bool _isRecordingPaused = false;
   bool _isFinishingRecording = false;
+  bool _isTransferringVideo = false;
   bool _isSubmitted = false;
   XFile? _recordedVideo;
   VideoPlayerController? _recordedVideoController;
@@ -153,6 +154,7 @@ class _CustomCameraScreenState extends State<CustomCameraScreen>
   Future<void> _toggleCamera() async {
     if (_isRecording ||
         _isFinishingRecording ||
+        _isTransferringVideo ||
         _selectedCamera == null ||
         !_hasFrontAndBackCameras) {
       return;
@@ -187,7 +189,10 @@ class _CustomCameraScreenState extends State<CustomCameraScreen>
 
   Future<void> _startRecording() async {
     final controller = _cameraController;
-    if (controller == null || !controller.value.isInitialized || _isRecording) {
+    if (controller == null ||
+        !controller.value.isInitialized ||
+        _isRecording ||
+        _isTransferringVideo) {
       return;
     }
 
@@ -376,7 +381,7 @@ class _CustomCameraScreenState extends State<CustomCameraScreen>
   }
 
   Future<void> _handleRecordButtonTap() async {
-    if (_isFinishingRecording) {
+    if (_isFinishingRecording || _isTransferringVideo) {
       return;
     }
 
@@ -390,6 +395,10 @@ class _CustomCameraScreenState extends State<CustomCameraScreen>
   }
 
   Future<void> _retake() async {
+    if (_isTransferringVideo) {
+      return;
+    }
+
     final controller = _cameraController;
     if (controller == null || !controller.value.isInitialized) {
       return;
@@ -422,7 +431,6 @@ class _CustomCameraScreenState extends State<CustomCameraScreen>
       return;
     }
 
-    _isSubmitted = true;
     final controller = context.read<WebViewProvider>();
     await controller.sendCameraResult(
       status: status,
@@ -432,6 +440,7 @@ class _CustomCameraScreenState extends State<CustomCameraScreen>
       mediaType: 'video',
       errorMessage: _errorMessage,
     );
+    _isSubmitted = true;
   }
 
   List<String> _splitBase64(String value, int chunkSize) {
@@ -470,20 +479,46 @@ class _CustomCameraScreenState extends State<CustomCameraScreen>
   }
 
   Future<void> _confirmRecording() async {
+    if (_isTransferringVideo) {
+      return;
+    }
+
     final webViewProvider = context.read<WebViewProvider>();
     final file = _recordedVideo ?? await _finishRecording();
     if (file == null) {
       return;
     }
 
-    await _sendRecordedFileToWeb(webViewProvider, file);
-    await _sendResult(status: 'confirmed', filePath: file.path);
+    if (mounted) {
+      setState(() {
+        _isTransferringVideo = true;
+        _errorMessage = null;
+      });
+    }
+
+    try {
+      await _sendRecordedFileToWeb(webViewProvider, file);
+      await _sendResult(status: 'confirmed', filePath: file.path);
+    } catch (e) {
+      if (mounted) {
+        setState(() {
+          _isTransferringVideo = false;
+          _errorMessage = 'Unable to send video. Please try again.';
+        });
+      }
+      return;
+    }
+
     if (mounted) {
       Navigator.of(context).pop();
     }
   }
 
   Future<void> _closeScreen() async {
+    if (_isTransferringVideo) {
+      return;
+    }
+
     if (_isRecording) {
       await _finishRecording();
     }
@@ -518,6 +553,10 @@ class _CustomCameraScreenState extends State<CustomCameraScreen>
 
     return GestureDetector(
       onTap: () {
+        if (_isTransferringVideo) {
+          return;
+        }
+
         if (controller.value.isPlaying) {
           controller.pause();
         } else {
@@ -614,6 +653,7 @@ class _CustomCameraScreenState extends State<CustomCameraScreen>
               child: _CircleIconButton(
                 icon: Icons.close_rounded,
                 onTap: _closeScreen,
+                isDisabled: _isTransferringVideo,
               ),
             ),
             const _GpsPill(),
@@ -623,7 +663,7 @@ class _CustomCameraScreenState extends State<CustomCameraScreen>
                 child: _CircleIconButton(
                   icon: Icons.cameraswitch_rounded,
                   onTap: _toggleCamera,
-                  isDisabled: !_hasFrontAndBackCameras,
+                  isDisabled: _isTransferringVideo || !_hasFrontAndBackCameras,
                 ),
               ),
           ],
@@ -651,6 +691,7 @@ class _CustomCameraScreenState extends State<CustomCameraScreen>
                   backgroundColor: const Color(0xFFFFF2F1),
                   foregroundColor: const Color(0xFFFF4C3A),
                   onTap: _retake,
+                  isDisabled: _isTransferringVideo,
                 ),
               ),
               const SizedBox(width: 8),
@@ -660,6 +701,7 @@ class _CustomCameraScreenState extends State<CustomCameraScreen>
                   backgroundColor: const Color(0xFFFF4C3A),
                   foregroundColor: Colors.white,
                   onTap: _confirmRecording,
+                  isLoading: _isTransferringVideo,
                 ),
               ),
             ],
@@ -746,7 +788,7 @@ class _CustomCameraScreenState extends State<CustomCameraScreen>
     return PopScope(
       canPop: false,
       onPopInvokedWithResult: (didPop, _) {
-        if (!didPop) {
+        if (!didPop && !_isTransferringVideo) {
           _closeScreen();
         }
       },
@@ -994,30 +1036,54 @@ class _ActionButton extends StatelessWidget {
     required this.backgroundColor,
     required this.foregroundColor,
     required this.onTap,
+    this.isDisabled = false,
+    this.isLoading = false,
   });
 
   final String label;
   final Color backgroundColor;
   final Color foregroundColor;
   final VoidCallback onTap;
+  final bool isDisabled;
+  final bool isLoading;
 
   @override
   Widget build(BuildContext context) {
+    final isInactive = isDisabled || isLoading;
+
     return Material(
       color: backgroundColor,
       borderRadius: BorderRadius.circular(8),
-      child: InkWell(
-        borderRadius: BorderRadius.circular(8),
-        onTap: onTap,
-        child: Container(
-          height: 44,
-          alignment: Alignment.center,
-          child: Text(
-            label,
-            style: TextStyle(
-              color: foregroundColor,
-              fontSize: 14,
-              fontWeight: FontWeight.w800,
+      child: AnimatedOpacity(
+        opacity: isDisabled ? 0.48 : 1,
+        duration: const Duration(milliseconds: 160),
+        child: InkWell(
+          borderRadius: BorderRadius.circular(8),
+          onTap: isInactive ? null : onTap,
+          child: Container(
+            height: 44,
+            alignment: Alignment.center,
+            child: AnimatedSwitcher(
+              duration: const Duration(milliseconds: 160),
+              child: isLoading
+                  ? SizedBox(
+                      key: const ValueKey('loading'),
+                      width: 18,
+                      height: 18,
+                      child: CircularProgressIndicator(
+                        strokeWidth: 2.4,
+                        color: foregroundColor,
+                      ),
+                    )
+                  : Text(
+                      label,
+                      key: ValueKey(label),
+                      style: TextStyle(
+                        color: foregroundColor,
+                        fontSize: 14,
+                        fontWeight: FontWeight.w800,
+                      ),
+                    ),
             ),
           ),
         ),

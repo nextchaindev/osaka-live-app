@@ -4,12 +4,12 @@ import 'package:app_links/app_links.dart';
 import 'package:osaka_app/config/env_config.dart';
 import 'package:osaka_app/constants/common.dart';
 import 'package:osaka_app/config/app_remote_config.dart';
-import 'package:osaka_app/extends/colors.dart';
 import 'package:osaka_app/helpers/Themes.dart';
 import 'package:osaka_app/helpers/icons.dart';
 import 'package:osaka_app/provider/webview_provider.dart';
 import 'package:osaka_app/repositories/auth_repository.dart';
 import 'package:osaka_app/services/location/location_sync_service.dart';
+import 'package:osaka_app/services/permission/permission_service.dart';
 import 'package:osaka_app/widgets/common/dialog.dart';
 import 'package:osaka_app/widgets/splash_overlay/index.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
@@ -79,7 +79,7 @@ class _MyHomePageState extends State<MyHomePage>
           loadingProvider.resetLoading();
         }
 
-        _startLocationSync();
+        unawaited(_requestInitialLocationPermissionAndSync());
       }
     });
 
@@ -156,6 +156,44 @@ class _MyHomePageState extends State<MyHomePage>
         );
       },
     );
+  }
+
+  Future<void> _refreshLocationPermissionAndSync() async {
+    if (!mounted) {
+      return;
+    }
+
+    final permissionPayload =
+        await PermissionService().getLocationPermissionPayload();
+    if (!mounted) {
+      return;
+    }
+
+    await context.read<WebViewProvider>().sendLocationPermissionStatus(
+          status: permissionPayload['status'] as String,
+          serviceEnabled: permissionPayload['serviceEnabled'] as bool,
+          updatedAt: (permissionPayload['updatedAt'] as num?)?.toInt(),
+        );
+    _startLocationSync();
+  }
+
+  Future<void> _requestInitialLocationPermissionAndSync() async {
+    if (!mounted) {
+      return;
+    }
+
+    final permissionPayload =
+        await PermissionService().requestInitialLocationPermission();
+    if (!mounted) {
+      return;
+    }
+
+    await context.read<WebViewProvider>().sendLocationPermissionStatus(
+          status: permissionPayload['status'] as String,
+          serviceEnabled: permissionPayload['serviceEnabled'] as bool,
+          updatedAt: (permissionPayload['updatedAt'] as num?)?.toInt(),
+        );
+    _startLocationSync();
   }
 
   void _showForceUpdateDialog() {
@@ -327,7 +365,7 @@ class _MyHomePageState extends State<MyHomePage>
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
     if (state == AppLifecycleState.resumed && mounted) {
-      _startLocationSync();
+      unawaited(_refreshLocationPermissionAndSync());
     }
   }
 
@@ -390,20 +428,20 @@ class _MyHomePageState extends State<MyHomePage>
                   _splashHideTimer?.cancel();
                   _shouldHideSplash = false;
                 }
-                  final disableTopSafeArea = 
-                  routeNoSafeArea.any((route) =>
-                    webviewProvider.currentUrl.contains(route) )||
-                    webviewProvider.currentUrl ==
-                        EnvConfig.instance.webviewUrl;               
-                 return Stack(
+                final disableTopSafeArea = routeNoSafeArea.any((route) =>
+                        webviewProvider.currentUrl.contains(route)) ||
+                    webviewProvider.currentUrl == EnvConfig.instance.webviewUrl;
+                final disableBottomSafeArea = routeNoBottomSafeArea
+                    .any((route) => webviewProvider.currentUrl.contains(route));
+                return Stack(
                   children: [
                     Opacity(
                       opacity: isLoaded ? 1.0 : 0.0,
                       child: Container(
                         color: Colors.white,
                         child: SafeArea(
-                          top: !disableTopSafeArea ,
-                          bottom: true,
+                          top: !disableTopSafeArea,
+                          bottom: !disableBottomSafeArea,
                           child: Navigator(
                             key: _navigatorKeys[0],
                             onGenerateRoute: (routeSettings) {

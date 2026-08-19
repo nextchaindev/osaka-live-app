@@ -14,6 +14,7 @@ import 'package:osaka_app/services/cookies/cookies_services.dart';
 import 'package:osaka_app/services/js/js_communication_service.dart';
 import 'package:osaka_app/provider/download_provider.dart';
 import 'package:osaka_app/services/permission/permission_service.dart';
+import 'package:osaka_app/widgets/common/dialog.dart';
 import 'package:osaka_app/widgets/webview/webview_window.dart';
 
 /// Mixin for WebView lifecycle event handlers
@@ -364,6 +365,7 @@ mixin WebViewLifecycleMixin<T extends StatefulWidget> on State<T> {
     onUpdateState(isLoading: false, progress: 1);
 
     final permissionService = PermissionService();
+    final appDialog = AppDialog();
     final hasPermission = await permissionService.requestStoragePermission();
 
     if (hasPermission) {
@@ -378,7 +380,18 @@ mixin WebViewLifecycleMixin<T extends StatefulWidget> on State<T> {
         name: fileName,
       );
     } else {
-      await permissionService.openAppSettings();
+      if (!mounted) {
+        return;
+      }
+      final openSettings = await appDialog.showPermissionDialog(
+        context,
+        title: '저장 공간 권한이 필요합니다',
+        message: '파일을 다운로드하려면 저장 공간 권한이 필요합니다.\n\n설정에서 권한을 허용해 주세요.',
+        icon: Icons.download_outlined,
+      );
+      if (openSettings && mounted) {
+        await permissionService.openAppSettings();
+      }
     }
   }
 

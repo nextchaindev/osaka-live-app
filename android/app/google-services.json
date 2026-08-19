@@ -12,7 +12,12 @@
           "package_name": "live.osaka"
         }
       },
-      "oauth_client": [],
+      "oauth_client": [
+        {
+          "client_id": "483630909707-2en02dehi781ndn76r8drafa70u9s1ss.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
       "api_key": [
         {
           "current_key": "AIzaSyCQ56cN2hoP0ElNJ4XWWcuMFUnispf0xRs"
@@ -31,7 +36,12 @@
           "package_name": "live.osaka.dev"
         }
       },
-      "oauth_client": [],
+      "oauth_client": [
+        {
+          "client_id": "483630909707-2en02dehi781ndn76r8drafa70u9s1ss.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
       "api_key": [
         {
           "current_key": "AIzaSyCQ56cN2hoP0ElNJ4XWWcuMFUnispf0xRs"

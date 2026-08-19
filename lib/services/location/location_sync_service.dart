@@ -46,10 +46,7 @@ class LocationSyncService {
       return false;
     }
 
-    var permission = await Geolocator.checkPermission();
-    if (permission == LocationPermission.denied) {
-      permission = await Geolocator.requestPermission();
-    }
+    final permission = await Geolocator.checkPermission();
 
     return permission == LocationPermission.whileInUse ||
         permission == LocationPermission.always;

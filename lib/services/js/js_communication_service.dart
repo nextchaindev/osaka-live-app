@@ -4,13 +4,16 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_inappwebview/flutter_inappwebview.dart';
 import 'package:fluttertoast/fluttertoast.dart';
+import 'package:osaka_app/constants/javascript.dart';
 import 'package:osaka_app/helpers/webview_helper.dart';
 import 'package:osaka_app/models/web_post_message.dart';
 import 'package:osaka_app/provider/webview_provider.dart';
 import 'package:osaka_app/repositories/auth_repository.dart';
 import 'package:osaka_app/screens/camera/custom_camera_screen.dart';
+import 'package:osaka_app/services/auth/social_login_service.dart';
 import 'package:osaka_app/services/location/location_sync_service.dart';
 import 'package:osaka_app/services/permission/permission_service.dart';
+import 'package:osaka_app/widgets/common/dialog.dart';
 import 'package:provider/provider.dart';
 import 'package:share_plus/share_plus.dart';
 
@@ -34,7 +37,7 @@ class JsCommunicationService {
         authRepository.checkUserLoginStatus(
           cookieManager: cookieManager,
           url: webViewUrl,
-          name: "accessToken",
+          name: "osaka_access",
         );
 
         context.read<WebViewProvider>().setCurrentUrl(currentUrl);
@@ -58,7 +61,9 @@ class JsCommunicationService {
     final fToast = FToast();
     fToast.init(context);
     final permissionService = PermissionService();
+    final appDialog = AppDialog();
     final locationSyncService = LocationSyncService();
+    final trustedOrigin = Uri.parse(webViewUrl).origin;
 
     Future<void> sendLocationPermissionPayload(
       Map<String, dynamic> payload,
@@ -109,13 +114,16 @@ class JsCommunicationService {
           return;
         }
 
-        Fluttertoast.showToast(
-          msg: 'Camera and microphone permissions are required.',
-          toastLength: Toast.LENGTH_SHORT,
-          gravity: ToastGravity.BOTTOM,
-          backgroundColor: Colors.black87,
-          textColor: Colors.white,
+        final openSettings = await appDialog.showPermissionDialog(
+          context,
+          title: '카메라와 마이크 권한이 필요합니다',
+          message:
+              '라이브 영상을 촬영하려면 카메라와 마이크 권한이 필요합니다.\n\n설정에서 권한을 허용해 주세요.',
+          icon: Icons.videocam_outlined,
         );
+        if (openSettings) {
+          await permissionService.openAppSettings();
+        }
         return;
       }
 
@@ -131,12 +139,64 @@ class JsCommunicationService {
       );
     }
 
+    Future<void> handleSocialLogin(Map<String, dynamic> message) async {
+      final provider = message['provider']?.toString() ?? '';
+      final requestId = message['requestId']?.toString() ?? '';
+      if (provider.isEmpty || requestId.isEmpty) {
+        debugPrint(
+          '[SNS][Flutter bridge] rejected invalid request '
+          'provider=$provider requestId=$requestId',
+        );
+        return;
+      }
+
+      debugPrint(
+        '[SNS][Flutter bridge] request received '
+        'provider=$provider requestId=$requestId',
+      );
+      final result = await SocialLoginService.instance.signIn(provider);
+      debugPrint(
+        '[SNS][Flutter bridge] dispatching result '
+        'provider=$provider requestId=$requestId status=${result.status} '
+        'errorCode=${result.errorCode ?? '-'} '
+        'hasIdToken=${result.idToken?.isNotEmpty == true}',
+      );
+      try {
+        await controller.evaluateJavascript(
+          source: pushSocialLoginResult(
+            status: result.status,
+            provider: result.provider,
+            requestId: requestId,
+            idToken: result.idToken,
+            errorCode: result.errorCode,
+          ),
+        );
+        debugPrint(
+          '[SNS][Flutter bridge] result dispatched requestId=$requestId',
+        );
+      } catch (error, stackTrace) {
+        debugPrint(
+          '[SNS][Flutter bridge] result dispatch failed '
+          'requestId=$requestId error=$error',
+        );
+        debugPrintStack(stackTrace: stackTrace);
+      }
+    }
+
     if (defaultTargetPlatform != TargetPlatform.android ||
         await WebViewFeature.isFeatureSupported(
             WebViewFeature.WEB_MESSAGE_LISTENER)) {
       await controller.addWebMessageListener(WebMessageListener(
         jsObjectName: "webviewListener",
         onPostMessage: (message, sourceOrigin, isMainFrame, replyProxy) async {
+          final sourceUri = Uri.tryParse(sourceOrigin?.toString() ?? '');
+          if (isMainFrame != true || sourceUri?.origin != trustedOrigin) {
+            debugPrint(
+              'Ignored WebView message from untrusted origin: $sourceOrigin',
+            );
+            return;
+          }
+
           print("message: $message");
           if (message != null && message.data != null) {
             final rawMessage = message.data.toString();
@@ -150,6 +210,12 @@ class JsCommunicationService {
               if (decoded is Map<String, dynamic> &&
                   decoded['type'] == 'record_camera') {
                 await openCustomCamera();
+                return;
+              }
+
+              if (decoded is Map<String, dynamic> &&
+                  decoded['type'] == 'social_login') {
+                await handleSocialLogin(decoded);
                 return;
               }
 
@@ -171,6 +237,20 @@ class JsCommunicationService {
                     await permissionService.requestLocationPermission();
                 await sendLocationPermissionPayload(permissionPayload);
                 await startLocationSyncIfAllowed(permissionPayload);
+                if (context.mounted &&
+                    (permissionPayload['status'] != 'granted' ||
+                        permissionPayload['serviceEnabled'] != true)) {
+                  final openSettings = await appDialog.showPermissionDialog(
+                    context,
+                    title: '위치 권한이 필요합니다',
+                    message:
+                        '주변 라이브 콘텐츠를 확인하고 지도를 업데이트하려면 위치 권한이 필요합니다.\n\n설정에서 권한을 허용해 주세요.',
+                    icon: Icons.location_on_outlined,
+                  );
+                  if (openSettings) {
+                    await permissionService.openAppSettings();
+                  }
+                }
               } else if (postedMessage.type == 'copy-fcm-token') {
                 await WebViewHelper().handleCopyFCMToken(fToast);
               } else if (postedMessage.type == 'download_file') {
