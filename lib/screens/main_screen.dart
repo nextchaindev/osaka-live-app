@@ -52,6 +52,7 @@ class _MyHomePageState extends State<MyHomePage>
   bool _isAppInitialized = false;
   bool _isUpdateRequired = false;
   bool _shouldHideSplash = false;
+  bool _isExitDialogVisible = false;
   Timer? _splashHideTimer;
 
   @override
@@ -400,7 +401,7 @@ class _MyHomePageState extends State<MyHomePage>
       canPop: false,
       onPopInvokedWithResult: (didPop, result) {
         if (!didPop) {
-          unawaited(_navigateBack(context));
+          unawaited(_handleSystemBack());
         }
       },
       child: GestureDetector(
@@ -471,130 +472,197 @@ class _MyHomePageState extends State<MyHomePage>
     );
   }
 
-  Future<bool> _navigateBack(BuildContext context) async {
-    if (Platform.isIOS && Navigator.of(context).userGestureInProgress) {
-      return Future.value(true);
+  /// Normalizes a path so that '', '/' and '/home/' can be compared.
+  String _normalizePath(String path) {
+    if (path.isEmpty) {
+      return '/';
     }
-    final env = EnvConfig.instance;
+    if (path.length > 1 && path.endsWith('/')) {
+      return path.substring(0, path.length - 1);
+    }
+    return path;
+  }
 
+  /// The webview root page (the page the app starts on).
+  ///
+  /// The system back button must not rely on [InAppWebViewController.canGoBack]
+  /// alone: the SPA keeps pushing history entries, so the webview can almost
+  /// always go back even when the user is already on the root page. Without
+  /// this check the back button silently reloads the same page forever and the
+  /// exit dialog is never reachable.
+  bool _isWebviewRoot(Uri? url) {
+    if (url == null) {
+      return false;
+    }
+    final root = Uri.tryParse(EnvConfig.instance.webviewUrl);
+    if (root == null || root.host.isEmpty) {
+      return false;
+    }
+    if (url.host != root.host) {
+      return false;
+    }
+    return _normalizePath(url.path) == _normalizePath(root.path);
+  }
+
+  Future<void> _handleSystemBack() async {
+    if (!mounted) {
+      return;
+    }
+
+    final env = EnvConfig.instance;
     final provider = Provider.of<WebViewProvider>(context, listen: false);
-    InAppWebViewController? webViewController = provider.controller;
+    final InAppWebViewController? webViewController = provider.controller;
 
     if (webViewController == null) {
-      return Future.value(true);
+      _showExitConfirmDialog();
+      return;
     }
 
-    if (await webViewController.canGoBack()) {
-      // Check if the URL has specific query parameters
-      try {
-        WebUri? currentUrl = await webViewController.getUrl();
-        if (currentUrl == null) {
-          return Future.value(true);
-        }
-        Map<String, String> params = currentUrl.queryParameters;
-        if (params['token_version_id'] != null &&
-            params['enc_data'] != null &&
-            params['integrity_value'] != null) {
-          await webViewController.loadUrl(
-              urlRequest:
-                  URLRequest(url: WebUri.uri(Uri.parse(env.webviewUrl))));
-        } else {
-          await webViewController.goBack();
-        }
-        return Future.value(false);
-      } catch (e) {
-        print("Error handling navigation: $e");
-        await webViewController.goBack();
-        return Future.value(false);
+    WebUri? currentUrl;
+    bool canGoBack = false;
+    try {
+      currentUrl = await webViewController.getUrl();
+      canGoBack = await webViewController.canGoBack();
+    } catch (e) {
+      print("Error reading webview state: $e");
+    }
+
+    if (!mounted) {
+      return;
+    }
+
+    // The SPA reports its route through the `onRouteChanged` JS handler, which
+    // is a reliable fallback when the controller cannot report a URL.
+    if (currentUrl == null && provider.currentUrl.isNotEmpty) {
+      final parsed = Uri.tryParse(provider.currentUrl);
+      if (parsed != null) {
+        currentUrl = WebUri.uri(parsed);
       }
-    } else {
-      showDialog(
-          // ignore: use_build_context_synchronously
-          context: context,
-          builder: (context) => AlertDialog(
-                insetPadding: EdgeInsets.all(24), // Remove default padding
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(16),
-                ), // Optional: Add rounded corners
-                title: Container(
-                    margin: EdgeInsets.symmetric(horizontal: 24),
-                    width: fullWidth(context) - 48,
-                    child: Column(
-                      children: [
-                        SvgPicture.asset(
-                          Theme.of(context).colorScheme.exitIcon,
-                          width: perWidth(context, 80),
-                          colorFilter: ColorFilter.mode(
-                              Color(0xff5A4FF3), BlendMode.srcIn),
-                        ),
-                        SizedBox(
-                          height: 24,
-                        ),
-                        Text(
-                          '앱을 종료 하시겠습니까?',
-                          textAlign: TextAlign.center,
-                          style: TextStyle(fontSize: 16),
-                        ),
-                      ],
-                    )),
-                actions: <Widget>[
-                  SizedBox(
-                    child: Row(
-                      children: [
-                        Expanded(
-                          child: TextButton(
-                            onPressed: () {
-                              Navigator.of(context).pop();
-                            },
-                            style: TextButton.styleFrom(
-                              backgroundColor: Color(0xffC9CCCF),
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(
-                                    4), // Set your desired radius
-                              ),
-                              minimumSize: Size(100, 40),
-                            ),
-                            child: const Text(
-                              '아니요',
-                              style: TextStyle(
-                                  fontSize: 16,
-                                  color: Color(0xff1F1F1F),
-                                  fontWeight: FontWeight.w500),
-                            ),
-                          ),
-                        ),
-                        SizedBox(
-                          width: 8,
-                        ),
-                        Expanded(
-                          child: TextButton(
-                            onPressed: () {
-                              SystemNavigator.pop();
-                            },
-                            style: TextButton.styleFrom(
-                              backgroundColor: Color(0xff5A4FF3),
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(
-                                    4), // Set your desired radius
-                              ),
-                              minimumSize: Size(100, 40),
-                            ),
-                            child: const Text(
-                              '네',
-                              style: TextStyle(
-                                  fontSize: 16,
-                                  color: Colors.white,
-                                  fontWeight: FontWeight.w500),
-                            ),
-                          ),
-                        )
-                      ],
-                    ),
-                  )
-                ],
-              ));
-
-      return Future.value(true);
     }
+
+    if (_isWebviewRoot(currentUrl)) {
+      _showExitConfirmDialog();
+      return;
+    }
+
+    try {
+      final Map<String, String> params =
+          currentUrl?.queryParameters ?? const {};
+      // Coming back from the identity verification flow: those history entries
+      // are one-time URLs, so restart from the webview root instead.
+      final bool isVerificationReturn = params['token_version_id'] != null &&
+          params['enc_data'] != null &&
+          params['integrity_value'] != null;
+
+      if (isVerificationReturn || !canGoBack) {
+        await webViewController.loadUrl(
+            urlRequest: URLRequest(url: WebUri.uri(Uri.parse(env.webviewUrl))));
+      } else {
+        await webViewController.goBack();
+      }
+    } catch (e) {
+      print("Error handling navigation: $e");
+      if (canGoBack) {
+        await webViewController.goBack();
+      } else {
+        _showExitConfirmDialog();
+      }
+    }
+  }
+
+  void _showExitConfirmDialog() {
+    if (!mounted || _isExitDialogVisible) {
+      return;
+    }
+    _isExitDialogVisible = true;
+
+    showDialog(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        insetPadding: EdgeInsets.all(24), // Remove default padding
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(16),
+        ), // Optional: Add rounded corners
+        title: Container(
+            margin: EdgeInsets.symmetric(horizontal: 24),
+            width: fullWidth(dialogContext) - 48,
+            child: Column(
+              children: [
+                SvgPicture.asset(
+                  Theme.of(dialogContext).colorScheme.exitIcon,
+                  width: perWidth(dialogContext, 80),
+                  colorFilter:
+                      ColorFilter.mode(Color(0xff5A4FF3), BlendMode.srcIn),
+                ),
+                SizedBox(
+                  height: 24,
+                ),
+                Text(
+                  '앱을 종료 하시겠습니까?',
+                  textAlign: TextAlign.center,
+                  style: TextStyle(fontSize: 16),
+                ),
+              ],
+            )),
+        actions: <Widget>[
+          SizedBox(
+            child: Row(
+              children: [
+                Expanded(
+                  child: TextButton(
+                    onPressed: () {
+                      Navigator.of(dialogContext).pop();
+                    },
+                    style: TextButton.styleFrom(
+                      backgroundColor: Color(0xffC9CCCF),
+                      shape: RoundedRectangleBorder(
+                        borderRadius:
+                            BorderRadius.circular(4), // Set your desired radius
+                      ),
+                      minimumSize: Size(100, 40),
+                    ),
+                    child: const Text(
+                      '아니요',
+                      style: TextStyle(
+                          fontSize: 16,
+                          color: Color(0xff1F1F1F),
+                          fontWeight: FontWeight.w500),
+                    ),
+                  ),
+                ),
+                SizedBox(
+                  width: 8,
+                ),
+                Expanded(
+                  child: TextButton(
+                    onPressed: () {
+                      Navigator.of(dialogContext).pop();
+                      SystemNavigator.pop();
+                    },
+                    style: TextButton.styleFrom(
+                      backgroundColor: Color(0xff5A4FF3),
+                      shape: RoundedRectangleBorder(
+                        borderRadius:
+                            BorderRadius.circular(4), // Set your desired radius
+                      ),
+                      minimumSize: Size(100, 40),
+                    ),
+                    child: const Text(
+                      '네',
+                      style: TextStyle(
+                          fontSize: 16,
+                          color: Colors.white,
+                          fontWeight: FontWeight.w500),
+                    ),
+                  ),
+                )
+              ],
+            ),
+          )
+        ],
+      ),
+    ).whenComplete(() {
+      _isExitDialogVisible = false;
+    });
   }
 }
