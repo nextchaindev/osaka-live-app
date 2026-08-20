@@ -6,6 +6,7 @@ import 'package:osaka_app/constants/common.dart';
 import 'package:osaka_app/config/app_remote_config.dart';
 import 'package:osaka_app/helpers/Themes.dart';
 import 'package:osaka_app/helpers/icons.dart';
+import 'package:osaka_app/helpers/webview_helper.dart';
 import 'package:osaka_app/provider/webview_provider.dart';
 import 'package:osaka_app/repositories/auth_repository.dart';
 import 'package:osaka_app/services/location/location_sync_service.dart';
@@ -434,7 +435,10 @@ class _MyHomePageState extends State<MyHomePage>
                 }
                 final disableTopSafeArea = routeNoSafeArea.any((route) =>
                         webviewProvider.currentUrl.contains(route)) ||
-                    webviewProvider.currentUrl == EnvConfig.instance.webviewUrl;
+                    WebViewHelper.isWebViewRoot(
+                      webviewProvider.currentUrl,
+                      rootUrl: EnvConfig.instance.webviewUrl,
+                    );
                 final disableBottomSafeArea = routeNoBottomSafeArea
                     .any((route) => webviewProvider.currentUrl.contains(route));
                 return Stack(
@@ -470,38 +474,6 @@ class _MyHomePageState extends State<MyHomePage>
             ))),
       ),
     );
-  }
-
-  /// Normalizes a path so that '', '/' and '/home/' can be compared.
-  String _normalizePath(String path) {
-    if (path.isEmpty) {
-      return '/';
-    }
-    if (path.length > 1 && path.endsWith('/')) {
-      return path.substring(0, path.length - 1);
-    }
-    return path;
-  }
-
-  /// The webview root page (the page the app starts on).
-  ///
-  /// The system back button must not rely on [InAppWebViewController.canGoBack]
-  /// alone: the SPA keeps pushing history entries, so the webview can almost
-  /// always go back even when the user is already on the root page. Without
-  /// this check the back button silently reloads the same page forever and the
-  /// exit dialog is never reachable.
-  bool _isWebviewRoot(Uri? url) {
-    if (url == null) {
-      return false;
-    }
-    final root = Uri.tryParse(EnvConfig.instance.webviewUrl);
-    if (root == null || root.host.isEmpty) {
-      return false;
-    }
-    if (url.host != root.host) {
-      return false;
-    }
-    return _normalizePath(url.path) == _normalizePath(root.path);
   }
 
   Future<void> _handleSystemBack() async {
@@ -540,7 +512,10 @@ class _MyHomePageState extends State<MyHomePage>
       }
     }
 
-    if (_isWebviewRoot(currentUrl)) {
+    if (WebViewHelper.isWebViewRoot(
+      currentUrl?.toString(),
+      rootUrl: env.webviewUrl,
+    )) {
       _showExitConfirmDialog();
       return;
     }
