@@ -10,6 +10,34 @@ import 'package:osaka_app/widgets/common/toast.dart';
 class WebViewHelper {
   // ==================== URL Utilities (Static Methods) ====================
 
+  /// Returns whether [url] points to the configured WebView root page.
+  ///
+  /// Query parameters and a trailing slash do not change the root route.
+  static bool isWebViewRoot(String? url, {required String rootUrl}) {
+    if (url == null || url.isEmpty) {
+      return false;
+    }
+
+    final current = Uri.tryParse(url);
+    final root = Uri.tryParse(rootUrl);
+    if (current == null || root == null || current.host.isEmpty) {
+      return false;
+    }
+
+    return current.host == root.host &&
+        _normalizePath(current.path) == _normalizePath(root.path);
+  }
+
+  static String _normalizePath(String path) {
+    if (path.isEmpty) {
+      return '/';
+    }
+    if (path.length > 1 && path.endsWith('/')) {
+      return path.substring(0, path.length - 1);
+    }
+    return path;
+  }
+
   /// Convert intent URL to app scheme
   /// Example: intent://... -> supertoss://...
   Uri convertAndAdjustUrl(String url) {

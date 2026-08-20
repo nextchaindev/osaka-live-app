@@ -103,10 +103,22 @@ class _WebViewContainerState extends State<WebViewContainer>
                   child: GestureDetector(
                     onHorizontalDragEnd: (dragEndDetails) async {
                       if (dragEndDetails.primaryVelocity! > 0) {
-                        if (await _webViewController?.canGoBack() ?? false) {
-                          print(
-                              "back to : ${await _webViewController?.getUrl()}");
-                          _webViewController?.goBack();
+                        final controller = _webViewController;
+                        final currentUrl = await controller?.getUrl();
+
+                        // On iOS, swiping back from the Web Home should be a
+                        // no-op. Android keeps its existing back behavior.
+                        if (Platform.isIOS &&
+                            WebViewHelper.isWebViewRoot(
+                              currentUrl?.toString(),
+                              rootUrl: _initialUrl,
+                            )) {
+                          return;
+                        }
+
+                        if (await controller?.canGoBack() ?? false) {
+                          print("back to : $currentUrl");
+                          controller?.goBack();
                         }
                       }
                     },
