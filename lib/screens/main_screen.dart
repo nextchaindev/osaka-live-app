@@ -6,8 +6,10 @@ import 'package:osaka_app/constants/common.dart';
 import 'package:osaka_app/config/app_remote_config.dart';
 import 'package:osaka_app/helpers/Themes.dart';
 import 'package:osaka_app/helpers/icons.dart';
+import 'package:osaka_app/helpers/webview_helper.dart';
 import 'package:osaka_app/provider/webview_provider.dart';
 import 'package:osaka_app/repositories/auth_repository.dart';
+import 'package:osaka_app/services/analytics/analytics_service.dart';
 import 'package:osaka_app/services/location/location_sync_service.dart';
 import 'package:osaka_app/services/permission/permission_service.dart';
 import 'package:osaka_app/widgets/common/dialog.dart';
@@ -44,6 +46,7 @@ class _MyHomePageState extends State<MyHomePage>
           vsync: this, duration: const Duration(milliseconds: 500));
   final List<GlobalKey<NavigatorState>> _navigatorKeys = [];
   final AppDialog appDialog = AppDialog();
+  final AnalyticsService _analyticsService = AnalyticsService();
   final LocationSyncService _locationSyncService = LocationSyncService();
 
   StreamSubscription<Uri>? _linkSubscription;
@@ -52,6 +55,7 @@ class _MyHomePageState extends State<MyHomePage>
   bool _isAppInitialized = false;
   bool _isUpdateRequired = false;
   bool _shouldHideSplash = false;
+  bool _isExitDialogVisible = false;
   Timer? _splashHideTimer;
 
   @override
@@ -201,9 +205,8 @@ class _MyHomePageState extends State<MyHomePage>
       context: context,
       barrierDismissible: false,
       builder: (dialogContext) {
-        // ignore: deprecated_member_use
-        return WillPopScope(
-          onWillPop: () async => false,
+        return PopScope(
+          canPop: false,
           child: Dialog(
             shape:
                 RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
@@ -397,9 +400,13 @@ class _MyHomePageState extends State<MyHomePage>
       statusBarIconBrightness: Brightness.light,
       statusBarBrightness: Brightness.dark,
     ));
-    // ignore: deprecated_member_use
-    return WillPopScope(
-      onWillPop: () => _navigateBack(context),
+    return PopScope(
+      canPop: false,
+      onPopInvokedWithResult: (didPop, result) {
+        if (!didPop) {
+          unawaited(_handleSystemBack());
+        }
+      },
       child: GestureDetector(
         onTap: () =>
             context.read<NavigationBarProvider>().animationController.reverse(),
@@ -430,7 +437,10 @@ class _MyHomePageState extends State<MyHomePage>
                 }
                 final disableTopSafeArea = routeNoSafeArea.any((route) =>
                         webviewProvider.currentUrl.contains(route)) ||
-                    webviewProvider.currentUrl == EnvConfig.instance.webviewUrl;
+                    WebViewHelper.isWebViewRoot(
+                      webviewProvider.currentUrl,
+                      rootUrl: EnvConfig.instance.webviewUrl,
+                    );
                 final disableBottomSafeArea = routeNoBottomSafeArea
                     .any((route) => webviewProvider.currentUrl.contains(route));
                 return Stack(
@@ -468,130 +478,226 @@ class _MyHomePageState extends State<MyHomePage>
     );
   }
 
-  Future<bool> _navigateBack(BuildContext context) async {
-    if (Platform.isIOS && Navigator.of(context).userGestureInProgress) {
-      return Future.value(true);
+  Future<void> _handleSystemBack() async {
+    if (!mounted) {
+      unawaited(
+          _analyticsService.logBackNavigation(action: 'app_exit_unmounted'));
+      SystemNavigator.pop();
+      return;
     }
-    final env = EnvConfig.instance;
 
+    final env = EnvConfig.instance;
     final provider = Provider.of<WebViewProvider>(context, listen: false);
-    InAppWebViewController? webViewController = provider.controller;
+    final InAppWebViewController? webViewController = provider.controller;
 
     if (webViewController == null) {
-      return Future.value(true);
+      unawaited(_analyticsService.logBackNavigation(
+        action: 'show_exit_dialog_controller_unavailable',
+        controllerReady: false,
+      ));
+      _showExitConfirmDialog();
+      return;
     }
 
-    if (await webViewController.canGoBack()) {
-      // Check if the URL has specific query parameters
-      try {
-        WebUri? currentUrl = await webViewController.getUrl();
-        if (currentUrl == null) {
-          return Future.value(true);
-        }
-        Map<String, String> params = currentUrl.queryParameters;
-        if (params['token_version_id'] != null &&
-            params['enc_data'] != null &&
-            params['integrity_value'] != null) {
-          await webViewController.loadUrl(
-              urlRequest:
-                  URLRequest(url: WebUri.uri(Uri.parse(env.webviewUrl))));
-        } else {
-          await webViewController.goBack();
-        }
-        return Future.value(false);
-      } catch (e) {
-        print("Error handling navigation: $e");
-        await webViewController.goBack();
-        return Future.value(false);
+    WebUri? currentUrl;
+    bool canGoBack = false;
+    try {
+      currentUrl = await webViewController.getUrl();
+      canGoBack = await webViewController.canGoBack();
+    } catch (e) {
+      print("Error reading webview state: $e");
+    }
+
+    if (!mounted) {
+      unawaited(_analyticsService.logBackNavigation(
+        action: 'app_exit_unmounted',
+        currentUrl: currentUrl?.toString(),
+        canGoBack: canGoBack,
+      ));
+      SystemNavigator.pop();
+      return;
+    }
+
+    // The SPA reports its route through the `onRouteChanged` JS handler, which
+    // is a reliable fallback when the controller cannot report a URL.
+    if (currentUrl == null && provider.currentUrl.isNotEmpty) {
+      final parsed = Uri.tryParse(provider.currentUrl);
+      if (parsed != null) {
+        currentUrl = WebUri.uri(parsed);
       }
-    } else {
-      showDialog(
-          // ignore: use_build_context_synchronously
-          context: context,
-          builder: (context) => AlertDialog(
-                insetPadding: EdgeInsets.all(24), // Remove default padding
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(16),
-                ), // Optional: Add rounded corners
-                title: Container(
-                    margin: EdgeInsets.symmetric(horizontal: 24),
-                    width: fullWidth(context) - 48,
-                    child: Column(
-                      children: [
-                        SvgPicture.asset(
-                          Theme.of(context).colorScheme.exitIcon,
-                          width: perWidth(context, 80),
-                          colorFilter: ColorFilter.mode(
-                              Color(0xff5A4FF3), BlendMode.srcIn),
-                        ),
-                        SizedBox(
-                          height: 24,
-                        ),
-                        Text(
-                          '앱을 종료 하시겠습니까?',
-                          textAlign: TextAlign.center,
-                          style: TextStyle(fontSize: 16),
-                        ),
-                      ],
-                    )),
-                actions: <Widget>[
-                  SizedBox(
-                    child: Row(
-                      children: [
-                        Expanded(
-                          child: TextButton(
-                            onPressed: () {
-                              Navigator.of(context).pop();
-                            },
-                            style: TextButton.styleFrom(
-                              backgroundColor: Color(0xffC9CCCF),
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(
-                                    4), // Set your desired radius
-                              ),
-                              minimumSize: Size(100, 40),
-                            ),
-                            child: const Text(
-                              '아니요',
-                              style: TextStyle(
-                                  fontSize: 16,
-                                  color: Color(0xff1F1F1F),
-                                  fontWeight: FontWeight.w500),
-                            ),
-                          ),
-                        ),
-                        SizedBox(
-                          width: 8,
-                        ),
-                        Expanded(
-                          child: TextButton(
-                            onPressed: () {
-                              SystemNavigator.pop();
-                            },
-                            style: TextButton.styleFrom(
-                              backgroundColor: Color(0xff5A4FF3),
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(
-                                    4), // Set your desired radius
-                              ),
-                              minimumSize: Size(100, 40),
-                            ),
-                            child: const Text(
-                              '네',
-                              style: TextStyle(
-                                  fontSize: 16,
-                                  color: Colors.white,
-                                  fontWeight: FontWeight.w500),
-                            ),
-                          ),
-                        )
-                      ],
-                    ),
-                  )
-                ],
-              ));
-
-      return Future.value(true);
     }
+
+    final bool isWebViewRoot = WebViewHelper.isWebViewRoot(
+      currentUrl?.toString(),
+      rootUrl: env.webviewUrl,
+    );
+
+    if (isWebViewRoot) {
+      unawaited(_analyticsService.logBackNavigation(
+        action: 'show_exit_dialog_at_webview_root',
+        currentUrl: currentUrl?.toString(),
+        isRoot: true,
+        canGoBack: canGoBack,
+      ));
+      _showExitConfirmDialog();
+      return;
+    }
+
+    try {
+      final Map<String, String> params =
+          currentUrl?.queryParameters ?? const {};
+      // Coming back from the identity verification flow: those history entries
+      // are one-time URLs, so restart from the webview root instead.
+      final bool isVerificationReturn = params['token_version_id'] != null &&
+          params['enc_data'] != null &&
+          params['integrity_value'] != null;
+
+      if (isVerificationReturn || !canGoBack) {
+        unawaited(_analyticsService.logBackNavigation(
+          action: isVerificationReturn
+              ? 'load_home_from_verification_return'
+              : 'load_home_without_webview_history',
+          currentUrl: currentUrl?.toString(),
+          isRoot: false,
+          canGoBack: canGoBack,
+        ));
+        await webViewController.loadUrl(
+            urlRequest: URLRequest(url: WebUri.uri(Uri.parse(env.webviewUrl))));
+      } else {
+        unawaited(_analyticsService.logBackNavigation(
+          action: 'webview_go_back',
+          currentUrl: currentUrl?.toString(),
+          isRoot: false,
+          canGoBack: true,
+        ));
+        await webViewController.goBack();
+      }
+    } catch (e) {
+      print("Error handling navigation: $e");
+      if (canGoBack) {
+        unawaited(_analyticsService.logBackNavigation(
+          action: 'webview_go_back_after_error',
+          currentUrl: currentUrl?.toString(),
+          isRoot: isWebViewRoot,
+          canGoBack: true,
+        ));
+        await webViewController.goBack();
+      } else {
+        unawaited(_analyticsService.logBackNavigation(
+          action: 'show_exit_dialog_after_navigation_error',
+          currentUrl: currentUrl?.toString(),
+          isRoot: isWebViewRoot,
+          canGoBack: false,
+        ));
+        _showExitConfirmDialog();
+      }
+    }
+  }
+
+  void _showExitConfirmDialog() {
+    if (_isExitDialogVisible) {
+      unawaited(_analyticsService.logBackNavigation(
+        action: 'app_exit_on_second_back_with_dialog',
+      ));
+      SystemNavigator.pop();
+      return;
+    }
+    _isExitDialogVisible = true;
+    unawaited(_analyticsService.logBackNavigation(action: 'exit_dialog_shown'));
+
+    showDialog(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        insetPadding: EdgeInsets.all(24), // Remove default padding
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(16),
+        ), // Optional: Add rounded corners
+        title: Container(
+            margin: EdgeInsets.symmetric(horizontal: 24),
+            width: fullWidth(dialogContext) - 48,
+            child: Column(
+              children: [
+                SvgPicture.asset(
+                  Theme.of(dialogContext).colorScheme.exitIcon,
+                  width: perWidth(dialogContext, 80),
+                  colorFilter:
+                      ColorFilter.mode(Color(0xff5A4FF3), BlendMode.srcIn),
+                ),
+                SizedBox(
+                  height: 24,
+                ),
+                Text(
+                  '앱을 종료 하시겠습니까?',
+                  textAlign: TextAlign.center,
+                  style: TextStyle(fontSize: 16),
+                ),
+              ],
+            )),
+        actions: <Widget>[
+          SizedBox(
+            child: Row(
+              children: [
+                Expanded(
+                  child: TextButton(
+                    onPressed: () {
+                      unawaited(_analyticsService.logBackNavigation(
+                        action: 'exit_dialog_cancelled',
+                      ));
+                      Navigator.of(dialogContext).pop();
+                    },
+                    style: TextButton.styleFrom(
+                      backgroundColor: Color(0xffC9CCCF),
+                      shape: RoundedRectangleBorder(
+                        borderRadius:
+                            BorderRadius.circular(4), // Set your desired radius
+                      ),
+                      minimumSize: Size(100, 40),
+                    ),
+                    child: const Text(
+                      '아니요',
+                      style: TextStyle(
+                          fontSize: 16,
+                          color: Color(0xff1F1F1F),
+                          fontWeight: FontWeight.w500),
+                    ),
+                  ),
+                ),
+                SizedBox(
+                  width: 8,
+                ),
+                Expanded(
+                  child: TextButton(
+                    onPressed: () {
+                      unawaited(_analyticsService.logBackNavigation(
+                        action: 'exit_dialog_confirmed',
+                      ));
+                      Navigator.of(dialogContext).pop();
+                      SystemNavigator.pop();
+                    },
+                    style: TextButton.styleFrom(
+                      backgroundColor: Color(0xff5A4FF3),
+                      shape: RoundedRectangleBorder(
+                        borderRadius:
+                            BorderRadius.circular(4), // Set your desired radius
+                      ),
+                      minimumSize: Size(100, 40),
+                    ),
+                    child: const Text(
+                      '네',
+                      style: TextStyle(
+                          fontSize: 16,
+                          color: Colors.white,
+                          fontWeight: FontWeight.w500),
+                    ),
+                  ),
+                )
+              ],
+            ),
+          )
+        ],
+      ),
+    ).whenComplete(() {
+      _isExitDialogVisible = false;
+    });
   }
 }
