@@ -9,6 +9,7 @@ import 'package:osaka_app/helpers/icons.dart';
 import 'package:osaka_app/helpers/webview_helper.dart';
 import 'package:osaka_app/provider/webview_provider.dart';
 import 'package:osaka_app/repositories/auth_repository.dart';
+import 'package:osaka_app/services/analytics/analytics_service.dart';
 import 'package:osaka_app/services/location/location_sync_service.dart';
 import 'package:osaka_app/services/permission/permission_service.dart';
 import 'package:osaka_app/widgets/common/dialog.dart';
@@ -45,6 +46,7 @@ class _MyHomePageState extends State<MyHomePage>
           vsync: this, duration: const Duration(milliseconds: 500));
   final List<GlobalKey<NavigatorState>> _navigatorKeys = [];
   final AppDialog appDialog = AppDialog();
+  final AnalyticsService _analyticsService = AnalyticsService();
   final LocationSyncService _locationSyncService = LocationSyncService();
 
   StreamSubscription<Uri>? _linkSubscription;
@@ -478,6 +480,9 @@ class _MyHomePageState extends State<MyHomePage>
 
   Future<void> _handleSystemBack() async {
     if (!mounted) {
+      unawaited(
+          _analyticsService.logBackNavigation(action: 'app_exit_unmounted'));
+      SystemNavigator.pop();
       return;
     }
 
@@ -486,6 +491,10 @@ class _MyHomePageState extends State<MyHomePage>
     final InAppWebViewController? webViewController = provider.controller;
 
     if (webViewController == null) {
+      unawaited(_analyticsService.logBackNavigation(
+        action: 'show_exit_dialog_controller_unavailable',
+        controllerReady: false,
+      ));
       _showExitConfirmDialog();
       return;
     }
@@ -500,6 +509,12 @@ class _MyHomePageState extends State<MyHomePage>
     }
 
     if (!mounted) {
+      unawaited(_analyticsService.logBackNavigation(
+        action: 'app_exit_unmounted',
+        currentUrl: currentUrl?.toString(),
+        canGoBack: canGoBack,
+      ));
+      SystemNavigator.pop();
       return;
     }
 
@@ -512,10 +527,18 @@ class _MyHomePageState extends State<MyHomePage>
       }
     }
 
-    if (WebViewHelper.isWebViewRoot(
+    final bool isWebViewRoot = WebViewHelper.isWebViewRoot(
       currentUrl?.toString(),
       rootUrl: env.webviewUrl,
-    )) {
+    );
+
+    if (isWebViewRoot) {
+      unawaited(_analyticsService.logBackNavigation(
+        action: 'show_exit_dialog_at_webview_root',
+        currentUrl: currentUrl?.toString(),
+        isRoot: true,
+        canGoBack: canGoBack,
+      ));
       _showExitConfirmDialog();
       return;
     }
@@ -530,26 +553,57 @@ class _MyHomePageState extends State<MyHomePage>
           params['integrity_value'] != null;
 
       if (isVerificationReturn || !canGoBack) {
+        unawaited(_analyticsService.logBackNavigation(
+          action: isVerificationReturn
+              ? 'load_home_from_verification_return'
+              : 'load_home_without_webview_history',
+          currentUrl: currentUrl?.toString(),
+          isRoot: false,
+          canGoBack: canGoBack,
+        ));
         await webViewController.loadUrl(
             urlRequest: URLRequest(url: WebUri.uri(Uri.parse(env.webviewUrl))));
       } else {
+        unawaited(_analyticsService.logBackNavigation(
+          action: 'webview_go_back',
+          currentUrl: currentUrl?.toString(),
+          isRoot: false,
+          canGoBack: true,
+        ));
         await webViewController.goBack();
       }
     } catch (e) {
       print("Error handling navigation: $e");
       if (canGoBack) {
+        unawaited(_analyticsService.logBackNavigation(
+          action: 'webview_go_back_after_error',
+          currentUrl: currentUrl?.toString(),
+          isRoot: isWebViewRoot,
+          canGoBack: true,
+        ));
         await webViewController.goBack();
       } else {
+        unawaited(_analyticsService.logBackNavigation(
+          action: 'show_exit_dialog_after_navigation_error',
+          currentUrl: currentUrl?.toString(),
+          isRoot: isWebViewRoot,
+          canGoBack: false,
+        ));
         _showExitConfirmDialog();
       }
     }
   }
 
   void _showExitConfirmDialog() {
-    if (!mounted || _isExitDialogVisible) {
+    if (_isExitDialogVisible) {
+      unawaited(_analyticsService.logBackNavigation(
+        action: 'app_exit_on_second_back_with_dialog',
+      ));
+      SystemNavigator.pop();
       return;
     }
     _isExitDialogVisible = true;
+    unawaited(_analyticsService.logBackNavigation(action: 'exit_dialog_shown'));
 
     showDialog(
       context: context,
@@ -586,6 +640,9 @@ class _MyHomePageState extends State<MyHomePage>
                 Expanded(
                   child: TextButton(
                     onPressed: () {
+                      unawaited(_analyticsService.logBackNavigation(
+                        action: 'exit_dialog_cancelled',
+                      ));
                       Navigator.of(dialogContext).pop();
                     },
                     style: TextButton.styleFrom(
@@ -611,6 +668,9 @@ class _MyHomePageState extends State<MyHomePage>
                 Expanded(
                   child: TextButton(
                     onPressed: () {
+                      unawaited(_analyticsService.logBackNavigation(
+                        action: 'exit_dialog_confirmed',
+                      ));
                       Navigator.of(dialogContext).pop();
                       SystemNavigator.pop();
                     },
