@@ -724,7 +724,7 @@ class _CustomCameraScreenState extends State<CustomCameraScreen>
           Text(
             _isRecording
                 ? _formatDuration(_recordingDuration)
-                : '5-30초 라이브 영상만 허용',
+                : '5초에서 30초까지 찍을 수 있어요',
             style: TextStyle(
               color: Colors.white.withValues(alpha: 0.92),
               fontSize: _isRecording ? 20 : 12,
@@ -767,7 +767,7 @@ class _CustomCameraScreenState extends State<CustomCameraScreen>
                 borderRadius: BorderRadius.circular(999),
               ),
               child: const Text(
-                '🔒 갤러리 업로드 불가 · 현장 라이브만',
+                '🔒 저장된 영상은 못 올려요 · 지금 여기서만',
                 style: TextStyle(
                   color: Colors.white,
                   fontSize: 12,
@@ -1019,7 +1019,7 @@ class _GpsPill extends StatelessWidget {
         ],
       ),
       child: const Text(
-        '통화 리뷰 · GPS 인증중',
+        '여기 계신지 확인 중',
         style: TextStyle(
           color: Colors.white,
           fontSize: 12,

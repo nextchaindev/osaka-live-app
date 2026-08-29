@@ -116,9 +116,9 @@ class JsCommunicationService {
 
         final openSettings = await appDialog.showPermissionDialog(
           context,
-          title: '카메라와 마이크 권한이 필요합니다',
+          title: '카메라와 마이크가 필요해요',
           message:
-              '라이브 영상을 촬영하려면 카메라와 마이크 권한이 필요합니다.\n\n설정에서 권한을 허용해 주세요.',
+              '영상을 찍으려면 카메라와 마이크 권한이 필요해요.\n\n설정에서 권한을 켜 주세요.',
           icon: Icons.videocam_outlined,
         );
         if (openSettings) {
@@ -242,9 +242,9 @@ class JsCommunicationService {
                         permissionPayload['serviceEnabled'] != true)) {
                   final openSettings = await appDialog.showPermissionDialog(
                     context,
-                    title: '위치 권한이 필요합니다',
+                    title: '위치 정보가 필요해요',
                     message:
-                        '주변 라이브 콘텐츠를 확인하고 지도를 업데이트하려면 위치 권한이 필요합니다.\n\n설정에서 권한을 허용해 주세요.',
+                        '내 주변 라이브를 보여드리려면 위치 권한이 필요해요.\n\n설정에서 권한을 켜 주세요.',
                     icon: Icons.location_on_outlined,
                   );
                   if (openSettings) {

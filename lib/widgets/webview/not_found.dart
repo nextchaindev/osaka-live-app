@@ -97,7 +97,7 @@ class _NotFoundState extends State<NotFound> {
                       });
                     });
                   },
-                  child: const Text('새로고침'),
+                  child: const Text('다시 불러오기'),
                 ),
         ],
       ),

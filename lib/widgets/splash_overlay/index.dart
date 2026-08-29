@@ -76,9 +76,9 @@ class SplashOverlay extends StatelessWidget {
                     ),
                     const SizedBox(height: 18),
                     Text(
-                      '실시간 영상, 진짜 사람들, 실제 장소.\n'
-                      '현장의 생생한 정보를 확인하고\n'
-                      '더 나은 계획을 세워보세요.',
+                      '진짜 사람들이 그 자리에서 찍은 영상.\n'
+                      '지금 어떤지 눈으로 확인하고\n'
+                      '오늘 갈 곳을 정해보세요.',
                       style: TextStyle(
                         fontSize: 16,
                         height: 1.35,

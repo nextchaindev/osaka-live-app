@@ -63,7 +63,7 @@ class AppDialog {
                     height: 48,
                     child: FilledButton(
                       onPressed: () => Navigator.of(dialogContext).pop(true),
-                      child: const Text('설정으로 이동'),
+                      child: const Text('설정 열기'),
                     ),
                   ),
                   const SizedBox(height: 4),
@@ -72,7 +72,7 @@ class AppDialog {
                     height: 44,
                     child: TextButton(
                       onPressed: () => Navigator.of(dialogContext).pop(false),
-                      child: const Text('나중에'),
+                      child: const Text('나중에 하기'),
                     ),
                   ),
                 ],
@@ -89,15 +89,15 @@ class AppDialog {
       barrierDismissible: false, // user must tap button!
       builder: (BuildContext context) {
         return AlertDialog(
-          title: const Text('앱 업데이트 필요!'),
+          title: const Text('업데이트가 필요해요'),
           content: Text(
-            "EasySales의 새로운 버전이 출시되었습니다!\n지금 바로 업데이트하세요!",
+            "오사카 라이브 새 버전이 나왔어요.\n지금 업데이트해 주세요.",
             style: TextStyle(fontSize: 13),
           ),
           actions: <Widget>[
             TextButton(
               child: const Text(
-                '지금 업데이트',
+                '업데이트하기',
                 style: TextStyle(
                     color: Colors.blue,
                     fontWeight: FontWeight.w600,

@@ -366,17 +366,17 @@ class _WebViewContainerState extends State<WebViewContainer>
                                 child: NotFound(
                                     webViewController: _webViewController!,
                                     url: _currentUrl,
-                                    title1: '페이지를 찾을 수 없습니다',
+                                    title1: '화면을 찾을 수 없어요',
                                     title2:
-                                        '페이지를 찾을 수 없습니다. 다시 시도하거나 인터넷 연결을 확인해 주세요'))
+                                        '다시 불러오거나 인터넷 연결을 확인해 주세요'))
                             : const SizedBox(height: 0, width: 0),
                         _slowInternetPage
                             ? Center(
                                 child: NotFound(
                                     webViewController: _webViewController!,
                                     url: _currentUrl,
-                                    title1: '잘못된 URL',
-                                    title2: '잘못된 URL입니다. 다시 시도해 주세요'))
+                                    title1: '주소가 올바르지 않아요',
+                                    title2: '주소를 확인하고 다시 해 주세요'))
                             : const SizedBox(height: 0, width: 0),
                         // Loading overlay circle
                         _progress < 1.0 && _isValidURL
