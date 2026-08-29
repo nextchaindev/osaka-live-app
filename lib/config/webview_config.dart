@@ -15,7 +15,12 @@ class WebViewConfig {
       cacheEnabled: false,
       isInspectable: true,
       clearCache: false,
-      supportZoom: true,
+      // The web app declares `user-scalable=no` / `maximum-scale=1`, because
+      // the map does its own pinch handling. Leaving zoom support on here
+      // overrides that and puts a second, native pinch recogniser on the same
+      // two fingers — on iOS the scroll view's own, on Android the built-in
+      // zoom — so a pinch on the map is claimed by both at once.
+      supportZoom: false,
       preferredContentMode: UserPreferredContentMode.MOBILE,
       // userAgent: "random",
       verticalScrollBarEnabled: false,
