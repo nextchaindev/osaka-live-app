@@ -272,6 +272,14 @@ mixin WebViewLifecycleMixin<T extends StatefulWidget> on State<T> {
 
     onUpdateState(progress: 1);
 
+    // A page that has already loaded keeps making sub-resource requests
+    // (API polling, images, analytics, websockets). A brief connectivity
+    // blip on one of those - e.g. right after the device wakes from lock
+    // screen and the network hasn't fully reconnected yet - must not take
+    // over the whole screen with the "No internet" overlay; only a failure
+    // to load the page itself should.
+    final bool isMainFrame = request.isForMainFrame ?? true;
+
     final uri = request.url;
     final rawUri = uri.uriValue;
 
@@ -298,7 +306,9 @@ mixin WebViewLifecycleMixin<T extends StatefulWidget> on State<T> {
     }
     print("onReceivedError ${error.description}");
     if (error.description == "net::ERR_NAME_NOT_RESOLVED") {
-      onUpdateState(showNoInternet: true, noInternet: true);
+      if (isMainFrame) {
+        onUpdateState(showNoInternet: true, noInternet: true);
+      }
       return;
     }
 
@@ -328,14 +338,18 @@ mixin WebViewLifecycleMixin<T extends StatefulWidget> on State<T> {
 
       if (error.description == 'net::ERR_INTERNET_DISCONNECTED' ||
           error.description == 'net::ERR_TIMED_OUT') {
-        onUpdateState(showNoInternet: true, noInternet: true);
+        if (isMainFrame) {
+          onUpdateState(showNoInternet: true, noInternet: true);
+        }
         return;
       }
     }
 
     if (Platform.isIOS &&
         error.description == 'The Internet connection appears to be offline.') {
-      onUpdateState(showNoInternet: true, noInternet: true);
+      if (isMainFrame) {
+        onUpdateState(showNoInternet: true, noInternet: true);
+      }
       return;
     }
   }
