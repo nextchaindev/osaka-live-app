@@ -385,8 +385,8 @@ mixin WebViewLifecycleMixin<T extends StatefulWidget> on State<T> {
       }
       final openSettings = await appDialog.showPermissionDialog(
         context,
-        title: '저장 공간 권한이 필요합니다',
-        message: '파일을 다운로드하려면 저장 공간 권한이 필요합니다.\n\n설정에서 권한을 허용해 주세요.',
+        title: '저장 권한이 필요해요',
+        message: '파일을 받으려면 저장 권한이 필요해요.\n\n설정에서 권한을 켜 주세요.',
         icon: Icons.download_outlined,
       );
       if (openSettings && mounted) {

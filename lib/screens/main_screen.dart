@@ -236,7 +236,7 @@ class _MyHomePageState extends State<MyHomePage>
                   ),
                   const SizedBox(height: 16),
                   const Text(
-                    '업데이트가 필요합니다',
+                    '업데이트가 필요해요',
                     style: TextStyle(
                         fontSize: 20,
                         fontWeight: FontWeight.w700,
@@ -245,7 +245,7 @@ class _MyHomePageState extends State<MyHomePage>
                   ),
                   const SizedBox(height: 8),
                   const Text(
-                    '최신 버전으로 업데이트하고\n더 나은 경험을 누려보세요.',
+                    '새 버전으로 업데이트하면\n더 편하게 쓸 수 있어요',
                     style: TextStyle(
                         fontSize: 14, color: Colors.white70, height: 1.4),
                     textAlign: TextAlign.center,
@@ -287,7 +287,7 @@ class _MyHomePageState extends State<MyHomePage>
                   ),
                   const SizedBox(height: 4),
                   const Text(
-                    '계속 사용하려면 업데이트가 필요합니다.',
+                    '계속 쓰려면 업데이트해야 해요',
                     style: TextStyle(fontSize: 12, color: Colors.white70),
                   ),
                 ],
@@ -627,7 +627,7 @@ class _MyHomePageState extends State<MyHomePage>
                   height: 24,
                 ),
                 Text(
-                  '앱을 종료 하시겠습니까?',
+                  '오사카 라이브를 닫을까요?',
                   textAlign: TextAlign.center,
                   style: TextStyle(fontSize: 16),
                 ),
