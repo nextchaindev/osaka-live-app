@@ -248,12 +248,6 @@ class _WebViewContainerState extends State<WebViewContainer>
                                   //   isLoading = false;
                                   // });
                                 },
-                                onReceivedServerTrustAuthRequest:
-                                    (controller, challenge) async {
-                                  return ServerTrustAuthResponse(
-                                      action: ServerTrustAuthResponseAction
-                                          .PROCEED);
-                                },
                                 onGeolocationPermissionsShowPrompt:
                                     (controller, origin) async {
                                   final locationPermission = Platform.isIOS

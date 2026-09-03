@@ -274,6 +274,7 @@ mixin WebViewLifecycleMixin<T extends StatefulWidget> on State<T> {
 
     final uri = request.url;
     final rawUri = uri.uriValue;
+    final bool isMainFrame = request.isForMainFrame ?? true;
 
     final appScheme = EnvConfig.instance.appScheme;
 
@@ -296,9 +297,15 @@ mixin WebViewLifecycleMixin<T extends StatefulWidget> on State<T> {
           urlRequest: URLRequest(url: WebUri.uri(Uri.parse(_webViewUrl))));
       return;
     }
-    print("onReceivedError ${error.description}");
+    print(
+      'onReceivedError '
+      'isMainFrame=$isMainFrame, '
+      'error=${error.description}',
+    );
     if (error.description == "net::ERR_NAME_NOT_RESOLVED") {
-      onUpdateState(showNoInternet: true, noInternet: true);
+      if (isMainFrame) {
+        onUpdateState(showNoInternet: true, noInternet: true);
+      }
       return;
     }
 
@@ -328,14 +335,18 @@ mixin WebViewLifecycleMixin<T extends StatefulWidget> on State<T> {
 
       if (error.description == 'net::ERR_INTERNET_DISCONNECTED' ||
           error.description == 'net::ERR_TIMED_OUT') {
-        onUpdateState(showNoInternet: true, noInternet: true);
+        if (isMainFrame) {
+          onUpdateState(showNoInternet: true, noInternet: true);
+        }
         return;
       }
     }
 
     if (Platform.isIOS &&
         error.description == 'The Internet connection appears to be offline.') {
-      onUpdateState(showNoInternet: true, noInternet: true);
+      if (isMainFrame) {
+        onUpdateState(showNoInternet: true, noInternet: true);
+      }
       return;
     }
   }
