@@ -1,4 +1,4 @@
-import 'package:osaka_app/helpers/Themes.dart';
+import 'package:osaka_app/helpers/themes.dart';
 import 'package:osaka_app/helpers/icons.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';

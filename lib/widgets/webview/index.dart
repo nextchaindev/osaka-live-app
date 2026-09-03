@@ -6,7 +6,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_inappwebview/flutter_inappwebview.dart';
 import 'package:osaka_app/config/env_config.dart';
 import 'package:osaka_app/config/webview_config.dart';
-import 'package:osaka_app/helpers/Colors.dart';
+import 'package:osaka_app/helpers/colors.dart';
 import 'package:osaka_app/helpers/webview_helper.dart';
 import 'package:osaka_app/mixins/webview_lifecycle_mixin.dart';
 import 'package:osaka_app/provider/download_provider.dart';
