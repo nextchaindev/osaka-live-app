@@ -21,7 +21,7 @@ dependencies:
   lottie: ^3.1.3
 
   #draw svg icons
-  flutter_svg: #^1.1.0
+  flutter_svg: ^2.3.0
 
   # state management
   provider: ^6.0.5
