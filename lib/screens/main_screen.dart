@@ -10,6 +10,7 @@ import 'package:osaka_app/helpers/webview_helper.dart';
 import 'package:osaka_app/provider/webview_provider.dart';
 import 'package:osaka_app/repositories/auth_repository.dart';
 import 'package:osaka_app/services/analytics/analytics_service.dart';
+import 'package:osaka_app/services/cookies/cookies_services.dart';
 import 'package:osaka_app/services/location/location_sync_service.dart';
 import 'package:osaka_app/services/permission/permission_service.dart';
 import 'package:osaka_app/widgets/common/dialog.dart';
@@ -50,6 +51,7 @@ class _MyHomePageState extends State<MyHomePage>
   final LocationSyncService _locationSyncService = LocationSyncService();
 
   StreamSubscription<Uri>? _linkSubscription;
+  StreamSubscription<String>? _fcmTokenSubscription;
 
   // Track app initialization state locally
   bool _isAppInitialized = false;
@@ -70,6 +72,9 @@ class _MyHomePageState extends State<MyHomePage>
         AnimationController(vsync: this, duration: animationDuration);
 
     initDeepLinks();
+    _fcmTokenSubscription = FirebaseMessaging.instance.onTokenRefresh.listen(
+      (token) => unawaited(_handleFcmTokenRefresh(token)),
+    );
 
     // Reset loading provider after build phase completes
     // This ensures splash shows on initial load and hot reload
@@ -121,6 +126,25 @@ class _MyHomePageState extends State<MyHomePage>
 
       // Update loading state based on initialization and webview progress
       // _updateSplashVisibility();
+    }
+  }
+
+  Future<void> _handleFcmTokenRefresh(String token) async {
+    try {
+      await AuthRepository().setFcmToken(fcmToken: token);
+      if (!mounted) {
+        return;
+      }
+
+      await markAccessByWebview(
+        webViewUrl: EnvConfig.instance.webviewUrl,
+        cookieManager: CookieManager.instance(),
+        safeAreaTop: context.read<WebViewProvider>().safeAreaTop,
+        safeAreaBottom: context.read<WebViewProvider>().safeAreaBottom,
+        fcmToken: token,
+      );
+    } catch (e) {
+      debugPrint('FCM token refresh handling failed: $e');
     }
   }
 
@@ -360,6 +384,7 @@ class _MyHomePageState extends State<MyHomePage>
     onChangedAnimation.dispose();
     navigationContainerAnimationController.dispose();
     _linkSubscription?.cancel();
+    _fcmTokenSubscription?.cancel();
     _splashHideTimer?.cancel();
     _locationSyncService.stop();
     super.dispose();
@@ -369,6 +394,13 @@ class _MyHomePageState extends State<MyHomePage>
   void didChangeAppLifecycleState(AppLifecycleState state) {
     if (state == AppLifecycleState.resumed && mounted) {
       unawaited(_refreshLocationPermissionAndSync());
+      return;
+    }
+
+    if (state == AppLifecycleState.inactive ||
+        state == AppLifecycleState.paused ||
+        state == AppLifecycleState.detached) {
+      unawaited(_locationSyncService.stop());
     }
   }
 
