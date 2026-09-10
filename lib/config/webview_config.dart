@@ -21,10 +21,10 @@ class WebViewConfig {
       verticalScrollBarEnabled: false,
       horizontalScrollBarEnabled: false,
       transparentBackground: true,
-      allowFileAccessFromFileURLs: true,
-      allowUniversalAccessFromFileURLs: true,
+      allowFileAccessFromFileURLs: false,
+      allowUniversalAccessFromFileURLs: false,
       thirdPartyCookiesEnabled: true,
-      allowFileAccess: true,
+      allowFileAccess: false,
       supportMultipleWindows: Platform.isIOS,
       allowsInlineMediaPlayback: true,
     );

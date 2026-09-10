@@ -261,6 +261,10 @@ mixin WebViewLifecycleMixin<T extends StatefulWidget> on State<T> {
       return NavigationActionPolicy.CANCEL;
     }
 
+    if (uri != null && !uri.isScheme('http') && !uri.isScheme('https')) {
+      return NavigationActionPolicy.CANCEL;
+    }
+
     return NavigationActionPolicy.ALLOW;
   }
 
