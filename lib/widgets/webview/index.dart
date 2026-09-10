@@ -85,6 +85,15 @@ class _WebViewContainerState extends State<WebViewContainer>
     }
   }
 
+  bool _isTrustedWebViewOrigin(WebUri origin) {
+    final trustedOrigin = Uri.parse(_initialUrl);
+    final requestOrigin = origin.uriValue;
+
+    return requestOrigin.scheme == trustedOrigin.scheme &&
+        requestOrigin.host == trustedOrigin.host &&
+        requestOrigin.port == trustedOrigin.port;
+  }
+
   @override
   void dispose() {
     _webViewController = null;
@@ -263,6 +272,13 @@ class _WebViewContainerState extends State<WebViewContainer>
                                 },
                                 onPermissionRequest:
                                     (controller, request) async {
+                                  if (!_isTrustedWebViewOrigin(
+                                      request.origin)) {
+                                    return PermissionResponse(
+                                      action: PermissionResponseAction.DENY,
+                                    );
+                                  }
+
                                   return PermissionResponse(
                                       resources: request.resources,
                                       action: PermissionResponseAction.GRANT);
