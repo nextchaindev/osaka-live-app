@@ -328,16 +328,16 @@ class _MyHomePageState extends State<MyHomePage>
     AppLinks().getInitialLink().then((link) {
       print("link => $link");
       if (link != null) {
-        openAppLink(link);
+        unawaited(openAppLink(link));
       }
     });
     _linkSubscription = AppLinks().uriLinkStream.listen((uri) {
       debugPrint('onAppLink: $uri');
-      openAppLink(uri);
+      unawaited(openAppLink(uri));
     });
   }
 
-  void openAppLink(Uri uri) {
+  Future<void> openAppLink(Uri uri) async {
     // Prefer explicit query param ?url=... for custom schemes
     String url = (uri.queryParameters['url'] ?? '').trim();
 
@@ -361,11 +361,19 @@ class _MyHomePageState extends State<MyHomePage>
       return;
     }
 
+    if (!WebViewHelper.isTrustedWebUri(
+      target,
+      rootUrl: EnvConfig.instance.webviewUrl,
+    )) {
+      await launchUrl(target, mode: LaunchMode.externalApplication);
+      return;
+    }
+
     final provider = Provider.of<WebViewProvider>(context, listen: false);
     InAppWebViewController? webViewController = provider.controller;
 
     if (webViewController != null) {
-      webViewController.loadUrl(
+      await webViewController.loadUrl(
           urlRequest: URLRequest(url: WebUri.uri(target)));
     } else {
       provider.setPendingDeepLink(target);

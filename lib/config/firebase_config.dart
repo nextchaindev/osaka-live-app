@@ -12,7 +12,9 @@ import 'package:osaka_app/config/env_config.dart';
 import 'package:osaka_app/firebase_options.dart';
 import 'package:osaka_app/firebase_options_dev.dart';
 import 'package:osaka_app/firebase_options_staging.dart';
+import 'package:osaka_app/helpers/webview_helper.dart';
 import 'package:osaka_app/provider/webview_provider.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 class FirebaseConfig {
   FirebaseConfig._internal();
@@ -183,11 +185,10 @@ class FirebaseConfig {
         return;
       }
 
-      final provider = Provider.of<WebViewProvider>(context, listen: false);
       debugPrint(
         '[OsakaLive][notification] opening ${message.messageId}: $target',
       );
-      await provider.openDeepLink(target);
+      await _openRedirectTarget(context, target);
     } catch (e) {
       debugPrint('[OsakaLive][notification] open error: $e');
     }
@@ -212,6 +213,19 @@ class FirebaseConfig {
     }
 
     return target;
+  }
+
+  Future<void> _openRedirectTarget(BuildContext context, Uri target) async {
+    if (!WebViewHelper.isTrustedWebUri(
+      target,
+      rootUrl: EnvConfig.instance.webviewUrl,
+    )) {
+      await launchUrl(target, mode: LaunchMode.externalApplication);
+      return;
+    }
+
+    final provider = Provider.of<WebViewProvider>(context, listen: false);
+    await provider.openDeepLink(target);
   }
 
   /// Setup Flutter local notifications
@@ -278,10 +292,9 @@ class FirebaseConfig {
       // Handle the action, like navigating to a specific screen
       print('Notification payload: ${response.payload}');
       try {
-        final provider = Provider.of<WebViewProvider>(context, listen: false);
         final target = _resolveRedirectUrl(response.payload);
         if (target != null) {
-          await provider.openDeepLink(target);
+          await _openRedirectTarget(context, target);
         }
       } catch (e) {
         print("err => $e");

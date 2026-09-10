@@ -304,7 +304,9 @@ class _WebViewContainerState extends State<WebViewContainer>
                                     (controller, navigationAction) async {
                                   return super.getNavigationPolicy(
                                       navigationAction.request.url,
-                                      _webViewHelper);
+                                      _webViewHelper,
+                                      isForMainFrame:
+                                          navigationAction.isForMainFrame);
                                 },
                                 onCreateWindow:
                                     (controller, createWindowRequest) async {

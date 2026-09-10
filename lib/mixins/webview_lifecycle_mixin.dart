@@ -187,7 +187,8 @@ mixin WebViewLifecycleMixin<T extends StatefulWidget> on State<T> {
   // Get navigation action policy for specific URLs
   // Handles OAuth redirects, intent URLs, and custom schemes
   Future<NavigationActionPolicy> getNavigationPolicy(
-      WebUri? uri, WebViewHelper webViewHelper) async {
+      WebUri? uri, WebViewHelper webViewHelper,
+      {required bool isForMainFrame}) async {
     // Handle OAuth URLs (Google, Kakao, Naver)
     if (uri != null &&
         (uri
@@ -249,6 +250,17 @@ mixin WebViewLifecycleMixin<T extends StatefulWidget> on State<T> {
       return NavigationActionPolicy.CANCEL;
     }
 
+    if (uri != null &&
+        isForMainFrame &&
+        (uri.isScheme('http') || uri.isScheme('https')) &&
+        !WebViewHelper.isTrustedWebUri(
+          uri.uriValue,
+          rootUrl: _webViewUrl,
+        )) {
+      await launchUrl(uri.uriValue, mode: LaunchMode.externalApplication);
+      return NavigationActionPolicy.CANCEL;
+    }
+
     return NavigationActionPolicy.ALLOW;
   }
 
@@ -284,8 +296,12 @@ mixin WebViewLifecycleMixin<T extends StatefulWidget> on State<T> {
       final target = Uri.tryParse(rawUri.queryParameters['url']!);
       if (target != null &&
           (target.scheme == 'http' || target.scheme == 'https')) {
-        await webViewController?.loadUrl(
-            urlRequest: URLRequest(url: WebUri.uri(target)));
+        if (WebViewHelper.isTrustedWebUri(target, rootUrl: _webViewUrl)) {
+          await webViewController?.loadUrl(
+              urlRequest: URLRequest(url: WebUri.uri(target)));
+        } else {
+          await launchUrl(target, mode: LaunchMode.externalApplication);
+        }
         return;
       }
     }

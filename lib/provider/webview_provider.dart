@@ -3,7 +3,9 @@ import 'dart:convert';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_inappwebview/flutter_inappwebview.dart';
+import 'package:osaka_app/config/env_config.dart';
 import 'package:osaka_app/constants/javascript.dart';
+import 'package:osaka_app/helpers/webview_helper.dart';
 
 /// Unified WebView provider that manages controller, loading state, and URL
 ///
@@ -66,6 +68,15 @@ class WebViewProvider extends ChangeNotifier {
         !_isWebViewReady ||
         controller == null ||
         target == null) {
+      return;
+    }
+
+    if (!WebViewHelper.isTrustedWebUri(
+      target,
+      rootUrl: EnvConfig.instance.webviewUrl,
+    )) {
+      debugPrint('[OsakaLive][notification] rejected untrusted link: $target');
+      _pendingDeepLink = null;
       return;
     }
 

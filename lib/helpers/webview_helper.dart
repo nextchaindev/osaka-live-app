@@ -28,6 +28,20 @@ class WebViewHelper {
         _normalizePath(current.path) == _normalizePath(root.path);
   }
 
+  /// Returns whether [uri] has the same web origin as [rootUrl].
+  static bool isTrustedWebUri(Uri uri, {required String rootUrl}) {
+    final root = Uri.tryParse(rootUrl);
+    if (root == null ||
+        !root.isScheme('http') && !root.isScheme('https') ||
+        !uri.isScheme('http') && !uri.isScheme('https')) {
+      return false;
+    }
+
+    return uri.scheme == root.scheme &&
+        uri.host == root.host &&
+        uri.port == root.port;
+  }
+
   static String _normalizePath(String path) {
     if (path.isEmpty) {
       return '/';
