@@ -6,9 +6,9 @@ const appName = "Osaka Live";
 String getLocalizedAppName(String? languageCode) {
   final env = EnvConfig.instance;
   if (languageCode == 'ko') {
-    return "Osaka Live ${env.env != "PROD" ? "(${env.env})" : ""}";
+    return "오사카라이브 ${!env.isProd ? "(${env.env})" : ""}";
   }
-  return "$appName ${env.env != "PROD" ? "(${env.env})" : ""}";
+  return "$appName ${!env.isProd ? "(${env.env})" : ""}";
 }
 
 const bool testEnviroment = false;

@@ -151,7 +151,7 @@ class _MyHomePageState extends State<MyHomePage>
   // Check update required when the version from Firebase Remote Config is greater than the current version
   Future<bool> checkUpdateRequired() async {
     try {
-      if (EnvConfig.instance.env != 'PROD') return false;
+      if (!EnvConfig.instance.isProd) return false;
       final packageInfo = await PackageInfo.fromPlatform();
       final currentVersion = packageInfo.version;
       final remoteVersion = RemoteConfigManager().getString(

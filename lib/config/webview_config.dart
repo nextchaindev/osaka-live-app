@@ -1,6 +1,7 @@
 import 'dart:io';
 
 import 'package:flutter_inappwebview/flutter_inappwebview.dart';
+import 'package:osaka_app/config/env_config.dart';
 
 /// WebView configuration settings
 class WebViewConfig {
@@ -19,7 +20,7 @@ class WebViewConfig {
       // the intent rather than changing behaviour today — but it is what the
       // setting should say.)
       cacheEnabled: true,
-      isInspectable: true,
+      isInspectable: EnvConfig.instance.isDev,
       clearCache: false,
       supportZoom: true,
       preferredContentMode: UserPreferredContentMode.MOBILE,
