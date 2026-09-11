@@ -36,9 +36,9 @@
 		<key>LSRequiresIPhoneOS</key>
 		<true/>
 		<key>NSCameraUsageDescription</key>
-		<string>We use your camera to let you take a profile photo and attach images when creating a support ticket.</string>
+		<string>We use your camera to let you take photos and videos for chat, live sessions, profile photos, and support attachments.</string>
 		<key>NSMicrophoneUsageDescription</key>
-		<string>We use your microphone to record live camera videos in Osaka Live.</string>
+		<string>We use your microphone to record chat videos and live camera videos in Osaka Live.</string>
 		<key>NSLocationWhenInUseUsageDescription</key>
 		<string>We use your location to show nearby Osaka live content and update the map around you.</string>
 		<key>NSLocationAlwaysAndWhenInUseUsageDescription</key>

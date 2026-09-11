@@ -245,6 +245,7 @@ class JsCommunicationService {
                 }
                 await NativeChatMediaService.instance.pickCompressAndUpload(
                   controller: controller,
+                  context: context,
                   requestId: requestId,
                   sessionId: sessionId,
                   maxFiles: maxFiles,

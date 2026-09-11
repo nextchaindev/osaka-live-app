@@ -2,7 +2,7 @@ import 'dart:convert';
 import 'dart:io';
 
 import 'package:dio/dio.dart';
-import 'package:flutter/foundation.dart';
+import 'package:flutter/material.dart';
 import 'package:flutter_image_compress/flutter_image_compress.dart'
     as image_compress;
 import 'package:flutter_inappwebview/flutter_inappwebview.dart';
@@ -27,10 +27,21 @@ class NativeChatMediaService {
 
   Future<void> pickCompressAndUpload({
     required InAppWebViewController controller,
+    required BuildContext context,
     required String requestId,
     required String sessionId,
     required int maxFiles,
   }) async {
+    if (!context.mounted) {
+      await _dispatchResult(
+        controller,
+        requestId: requestId,
+        status: 'error',
+        errorCode: 'view_unavailable',
+      );
+      return;
+    }
+
     if (_isPicking) {
       await _dispatchResult(
         controller,
@@ -45,9 +56,9 @@ class NativeChatMediaService {
     final uploadedKeys = <String>[];
     final temporaryPaths = <String>[];
     try {
-      final files = await _picker.pickMultipleMedia(
-        limit: maxFiles.clamp(1, _maxFiles),
-        requestFullMetadata: false,
+      final files = await _pickMedia(
+        context,
+        maxFiles.clamp(1, _maxFiles),
       );
       if (files.isEmpty) {
         await _dispatchResult(
@@ -140,6 +151,64 @@ class NativeChatMediaService {
         } catch (_) {}
       }
       _isPicking = false;
+    }
+  }
+
+  Future<List<XFile>> _pickMedia(BuildContext context, int maxFiles) async {
+    final source = await showModalBottomSheet<_ChatMediaSource>(
+      context: context,
+      useRootNavigator: true,
+      showDragHandle: true,
+      builder: (sheetContext) => SafeArea(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            ListTile(
+              leading: const Icon(Icons.photo_library_outlined),
+              title: const Text('사진 및 동영상 선택'),
+              onTap: () => Navigator.pop(
+                sheetContext,
+                _ChatMediaSource.library,
+              ),
+            ),
+            ListTile(
+              leading: const Icon(Icons.photo_camera_outlined),
+              title: const Text('사진 촬영'),
+              onTap: () => Navigator.pop(
+                sheetContext,
+                _ChatMediaSource.cameraImage,
+              ),
+            ),
+            ListTile(
+              leading: const Icon(Icons.videocam_outlined),
+              title: const Text('동영상 촬영'),
+              onTap: () => Navigator.pop(
+                sheetContext,
+                _ChatMediaSource.cameraVideo,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+
+    switch (source) {
+      case _ChatMediaSource.library:
+        return _picker.pickMultipleMedia(
+          limit: maxFiles,
+          requestFullMetadata: false,
+        );
+      case _ChatMediaSource.cameraImage:
+        final file = await _picker.pickImage(
+          source: ImageSource.camera,
+          requestFullMetadata: false,
+        );
+        return file == null ? [] : [file];
+      case _ChatMediaSource.cameraVideo:
+        final file = await _picker.pickVideo(source: ImageSource.camera);
+        return file == null ? [] : [file];
+      case null:
+        return [];
     }
   }
 
@@ -363,6 +432,8 @@ class _PreparedChatMedia {
   final String mimeType;
   final int size;
 }
+
+enum _ChatMediaSource { library, cameraImage, cameraVideo }
 
 class _NativeChatMediaException implements Exception {
   const _NativeChatMediaException(this.code);
