@@ -46,7 +46,7 @@
 		<key>NSLocalNetworkUsageDescription</key>
 		<string>This app needs access to local network for development and debugging purposes.</string>
 		<key>NSPhotoLibraryUsageDescription</key>
-		<string>We use your photo library to let you choose a profile photo and attach images when creating a support ticket.</string>
+		<string>We use your photo library to let you choose photos and videos for chat, profile photos, and support attachments.</string>
 		<key>UIApplicationSceneManifest</key>
 		<dict>
 			<key>UIApplicationSupportsMultipleScenes</key>

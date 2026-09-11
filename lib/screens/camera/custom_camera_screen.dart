@@ -124,7 +124,7 @@ class _CustomCameraScreenState extends State<CustomCameraScreen>
 
     final controller = CameraController(
       camera,
-      ResolutionPreset.high,
+      ResolutionPreset.medium,
       enableAudio: true,
       imageFormatGroup: ImageFormatGroup.yuv420,
     );

@@ -26,6 +26,21 @@ mixin WebViewLifecycleMixin<T extends StatefulWidget> on State<T> {
 
   // ==================== State Variables ====================
   int _previousScrollY = 0;
+  bool _liveSessionVideoAutoPlay = false;
+
+  bool _isLiveSessionUrl(WebUri? url) =>
+      url?.uriValue.path.startsWith('/sessions/') ?? false;
+
+  Future<void> _applyLiveSessionVideoAutoPlay(
+    InAppWebViewController controller,
+  ) async {
+    if (!_liveSessionVideoAutoPlay ||
+        !_isLiveSessionUrl(await controller.getUrl())) {
+      return;
+    }
+
+    await controller.evaluateJavascript(source: unmuteAutoplayVideos);
+  }
 
   // ==================== Controller Setup ====================
 
@@ -108,6 +123,10 @@ mixin WebViewLifecycleMixin<T extends StatefulWidget> on State<T> {
     await JsCommunicationService.handlePostMessage(
       controller: controller,
       webViewUrl: _webViewUrl,
+      onLiveSessionVideoAutoPlayChanged: (enabled) async {
+        _liveSessionVideoAutoPlay = enabled;
+        await _applyLiveSessionVideoAutoPlay(controller);
+      },
       onDownload: onDownload,
       // ignore: use_build_context_synchronously
       context: context,
@@ -163,9 +182,7 @@ mixin WebViewLifecycleMixin<T extends StatefulWidget> on State<T> {
     // );
 
     await controller.evaluateJavascript(source: listenRouterChange);
-    if (url?.uriValue.path.startsWith('/sessions/') ?? false) {
-      await controller.evaluateJavascript(source: unmuteAutoplayVideos);
-    }
+    await _applyLiveSessionVideoAutoPlay(controller);
 
     print("stop successful");
     loadingProvider.setWebViewReady(true);
