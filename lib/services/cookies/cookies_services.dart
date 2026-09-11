@@ -83,13 +83,15 @@ Future<void> markAccessByWebview({
   required CookieManager cookieManager,
   double? safeAreaTop,
   double? safeAreaBottom,
+  String? fcmToken,
 }) async {
   final expiresDate =
       DateTime.now().add(const Duration(days: 7)).millisecondsSinceEpoch;
   final packageInfo = await PackageInfo.fromPlatform();
   final version = packageInfo.version;
   final appScheme = EnvConfig.instance.appScheme;
-  final fcmToken = await FirebaseMessaging.instance.getToken();
+  final currentFcmToken =
+      fcmToken ?? await FirebaseMessaging.instance.getToken();
   final payload = <String, dynamic>{
     "platform": Platform.isIOS ? "iOS" : "android",
     "version": version,
@@ -98,7 +100,7 @@ Future<void> markAccessByWebview({
     if (safeAreaBottom != null) "safeAreaBottom": safeAreaBottom,
     "appScheme": appScheme,
     "environment": EnvConfig.instance.env.toLowerCase(),
-    "fcmToken": fcmToken,
+    "fcmToken": currentFcmToken,
   };
   print("payload: $payload");
   await cookieManager.setCookie(

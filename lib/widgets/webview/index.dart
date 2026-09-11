@@ -6,7 +6,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_inappwebview/flutter_inappwebview.dart';
 import 'package:osaka_app/config/env_config.dart';
 import 'package:osaka_app/config/webview_config.dart';
-import 'package:osaka_app/helpers/Colors.dart';
+import 'package:osaka_app/helpers/colors.dart';
 import 'package:osaka_app/helpers/webview_helper.dart';
 import 'package:osaka_app/mixins/webview_lifecycle_mixin.dart';
 import 'package:osaka_app/provider/download_provider.dart';
@@ -83,6 +83,15 @@ class _WebViewContainerState extends State<WebViewContainer>
     } on Exception catch (e) {
       print(e);
     }
+  }
+
+  bool _isTrustedWebViewOrigin(WebUri origin) {
+    final trustedOrigin = Uri.parse(_initialUrl);
+    final requestOrigin = origin.uriValue;
+
+    return requestOrigin.scheme == trustedOrigin.scheme &&
+        requestOrigin.host == trustedOrigin.host &&
+        requestOrigin.port == trustedOrigin.port;
   }
 
   @override
@@ -248,12 +257,6 @@ class _WebViewContainerState extends State<WebViewContainer>
                                   //   isLoading = false;
                                   // });
                                 },
-                                onReceivedServerTrustAuthRequest:
-                                    (controller, challenge) async {
-                                  return ServerTrustAuthResponse(
-                                      action: ServerTrustAuthResponseAction
-                                          .PROCEED);
-                                },
                                 onGeolocationPermissionsShowPrompt:
                                     (controller, origin) async {
                                   final locationPermission = Platform.isIOS
@@ -269,6 +272,13 @@ class _WebViewContainerState extends State<WebViewContainer>
                                 },
                                 onPermissionRequest:
                                     (controller, request) async {
+                                  if (!_isTrustedWebViewOrigin(
+                                      request.origin)) {
+                                    return PermissionResponse(
+                                      action: PermissionResponseAction.DENY,
+                                    );
+                                  }
+
                                   return PermissionResponse(
                                       resources: request.resources,
                                       action: PermissionResponseAction.GRANT);
@@ -294,7 +304,9 @@ class _WebViewContainerState extends State<WebViewContainer>
                                     (controller, navigationAction) async {
                                   return super.getNavigationPolicy(
                                       navigationAction.request.url,
-                                      _webViewHelper);
+                                      _webViewHelper,
+                                      isForMainFrame:
+                                          navigationAction.isForMainFrame);
                                 },
                                 onCreateWindow:
                                     (controller, createWindowRequest) async {

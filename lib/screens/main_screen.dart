@@ -4,12 +4,13 @@ import 'package:app_links/app_links.dart';
 import 'package:osaka_app/config/env_config.dart';
 import 'package:osaka_app/constants/common.dart';
 import 'package:osaka_app/config/app_remote_config.dart';
-import 'package:osaka_app/helpers/Themes.dart';
+import 'package:osaka_app/helpers/themes.dart';
 import 'package:osaka_app/helpers/icons.dart';
 import 'package:osaka_app/helpers/webview_helper.dart';
 import 'package:osaka_app/provider/webview_provider.dart';
 import 'package:osaka_app/repositories/auth_repository.dart';
 import 'package:osaka_app/services/analytics/analytics_service.dart';
+import 'package:osaka_app/services/cookies/cookies_services.dart';
 import 'package:osaka_app/services/location/location_sync_service.dart';
 import 'package:osaka_app/services/permission/permission_service.dart';
 import 'package:osaka_app/widgets/common/dialog.dart';
@@ -50,6 +51,7 @@ class _MyHomePageState extends State<MyHomePage>
   final LocationSyncService _locationSyncService = LocationSyncService();
 
   StreamSubscription<Uri>? _linkSubscription;
+  StreamSubscription<String>? _fcmTokenSubscription;
 
   // Track app initialization state locally
   bool _isAppInitialized = false;
@@ -70,6 +72,9 @@ class _MyHomePageState extends State<MyHomePage>
         AnimationController(vsync: this, duration: animationDuration);
 
     initDeepLinks();
+    _fcmTokenSubscription = FirebaseMessaging.instance.onTokenRefresh.listen(
+      (token) => unawaited(_handleFcmTokenRefresh(token)),
+    );
 
     // Reset loading provider after build phase completes
     // This ensures splash shows on initial load and hot reload
@@ -121,6 +126,25 @@ class _MyHomePageState extends State<MyHomePage>
 
       // Update loading state based on initialization and webview progress
       // _updateSplashVisibility();
+    }
+  }
+
+  Future<void> _handleFcmTokenRefresh(String token) async {
+    try {
+      await AuthRepository().setFcmToken(fcmToken: token);
+      if (!mounted) {
+        return;
+      }
+
+      await markAccessByWebview(
+        webViewUrl: EnvConfig.instance.webviewUrl,
+        cookieManager: CookieManager.instance(),
+        safeAreaTop: context.read<WebViewProvider>().safeAreaTop,
+        safeAreaBottom: context.read<WebViewProvider>().safeAreaBottom,
+        fcmToken: token,
+      );
+    } catch (e) {
+      debugPrint('FCM token refresh handling failed: $e');
     }
   }
 
@@ -304,16 +328,16 @@ class _MyHomePageState extends State<MyHomePage>
     AppLinks().getInitialLink().then((link) {
       print("link => $link");
       if (link != null) {
-        openAppLink(link);
+        unawaited(openAppLink(link));
       }
     });
     _linkSubscription = AppLinks().uriLinkStream.listen((uri) {
       debugPrint('onAppLink: $uri');
-      openAppLink(uri);
+      unawaited(openAppLink(uri));
     });
   }
 
-  void openAppLink(Uri uri) {
+  Future<void> openAppLink(Uri uri) async {
     // Prefer explicit query param ?url=... for custom schemes
     String url = (uri.queryParameters['url'] ?? '').trim();
 
@@ -337,11 +361,19 @@ class _MyHomePageState extends State<MyHomePage>
       return;
     }
 
+    if (!WebViewHelper.isTrustedWebUri(
+      target,
+      rootUrl: EnvConfig.instance.webviewUrl,
+    )) {
+      await launchUrl(target, mode: LaunchMode.externalApplication);
+      return;
+    }
+
     final provider = Provider.of<WebViewProvider>(context, listen: false);
     InAppWebViewController? webViewController = provider.controller;
 
     if (webViewController != null) {
-      webViewController.loadUrl(
+      await webViewController.loadUrl(
           urlRequest: URLRequest(url: WebUri.uri(target)));
     } else {
       provider.setPendingDeepLink(target);
@@ -360,6 +392,7 @@ class _MyHomePageState extends State<MyHomePage>
     onChangedAnimation.dispose();
     navigationContainerAnimationController.dispose();
     _linkSubscription?.cancel();
+    _fcmTokenSubscription?.cancel();
     _splashHideTimer?.cancel();
     _locationSyncService.stop();
     super.dispose();
@@ -369,6 +402,13 @@ class _MyHomePageState extends State<MyHomePage>
   void didChangeAppLifecycleState(AppLifecycleState state) {
     if (state == AppLifecycleState.resumed && mounted) {
       unawaited(_refreshLocationPermissionAndSync());
+      return;
+    }
+
+    if (state == AppLifecycleState.inactive ||
+        state == AppLifecycleState.paused ||
+        state == AppLifecycleState.detached) {
+      unawaited(_locationSyncService.stop());
     }
   }
 

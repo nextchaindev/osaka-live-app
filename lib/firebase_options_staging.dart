@@ -63,6 +63,6 @@ class DefaultFirebaseStagingOptions {
     messagingSenderId: '483630909707',
     projectId: 'osaka-live-503110',
     storageBucket: 'osaka-live-503110.firebasestorage.app',
-    iosBundleId: 'live.osaka.dev.staging',
+    iosBundleId: 'live.osaka.staging',
   );
 }

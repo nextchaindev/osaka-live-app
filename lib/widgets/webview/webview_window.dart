@@ -6,7 +6,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_inappwebview/flutter_inappwebview.dart';
 import 'package:flutter_svg/svg.dart';
 import 'package:provider/provider.dart';
-import 'package:osaka_app/helpers/Themes.dart';
+import 'package:osaka_app/helpers/themes.dart';
 import 'package:osaka_app/helpers/icons.dart';
 import 'package:osaka_app/provider/webview_provider.dart';
 

@@ -37,7 +37,7 @@ Future<String> _resolveEnvironment() async {
   final bundleId = (await PackageInfo.fromPlatform()).packageName;
   return switch (bundleId) {
     'live.osaka' => 'prod',
-    'live.osaka.staging' || 'live.osaka.dev.staging' => 'staging',
+    'live.osaka.staging'  => 'staging',
     _ => 'dev',
   };
 }

@@ -187,7 +187,8 @@ mixin WebViewLifecycleMixin<T extends StatefulWidget> on State<T> {
   // Get navigation action policy for specific URLs
   // Handles OAuth redirects, intent URLs, and custom schemes
   Future<NavigationActionPolicy> getNavigationPolicy(
-      WebUri? uri, WebViewHelper webViewHelper) async {
+      WebUri? uri, WebViewHelper webViewHelper,
+      {required bool isForMainFrame}) async {
     // Handle OAuth URLs (Google, Kakao, Naver)
     if (uri != null &&
         (uri
@@ -249,6 +250,21 @@ mixin WebViewLifecycleMixin<T extends StatefulWidget> on State<T> {
       return NavigationActionPolicy.CANCEL;
     }
 
+    if (uri != null &&
+        isForMainFrame &&
+        (uri.isScheme('http') || uri.isScheme('https')) &&
+        !WebViewHelper.isTrustedWebUri(
+          uri.uriValue,
+          rootUrl: _webViewUrl,
+        )) {
+      await launchUrl(uri.uriValue, mode: LaunchMode.externalApplication);
+      return NavigationActionPolicy.CANCEL;
+    }
+
+    if (uri != null && !uri.isScheme('http') && !uri.isScheme('https')) {
+      return NavigationActionPolicy.CANCEL;
+    }
+
     return NavigationActionPolicy.ALLOW;
   }
 
@@ -274,6 +290,7 @@ mixin WebViewLifecycleMixin<T extends StatefulWidget> on State<T> {
 
     final uri = request.url;
     final rawUri = uri.uriValue;
+    final bool isMainFrame = request.isForMainFrame ?? true;
 
     final appScheme = EnvConfig.instance.appScheme;
 
@@ -283,8 +300,12 @@ mixin WebViewLifecycleMixin<T extends StatefulWidget> on State<T> {
       final target = Uri.tryParse(rawUri.queryParameters['url']!);
       if (target != null &&
           (target.scheme == 'http' || target.scheme == 'https')) {
-        await webViewController?.loadUrl(
-            urlRequest: URLRequest(url: WebUri.uri(target)));
+        if (WebViewHelper.isTrustedWebUri(target, rootUrl: _webViewUrl)) {
+          await webViewController?.loadUrl(
+              urlRequest: URLRequest(url: WebUri.uri(target)));
+        } else {
+          await launchUrl(target, mode: LaunchMode.externalApplication);
+        }
         return;
       }
     }
@@ -296,9 +317,15 @@ mixin WebViewLifecycleMixin<T extends StatefulWidget> on State<T> {
           urlRequest: URLRequest(url: WebUri.uri(Uri.parse(_webViewUrl))));
       return;
     }
-    print("onReceivedError ${error.description}");
+    print(
+      'onReceivedError '
+      'isMainFrame=$isMainFrame, '
+      'error=${error.description}',
+    );
     if (error.description == "net::ERR_NAME_NOT_RESOLVED") {
-      onUpdateState(showNoInternet: true, noInternet: true);
+      if (isMainFrame) {
+        onUpdateState(showNoInternet: true, noInternet: true);
+      }
       return;
     }
 
@@ -328,14 +355,18 @@ mixin WebViewLifecycleMixin<T extends StatefulWidget> on State<T> {
 
       if (error.description == 'net::ERR_INTERNET_DISCONNECTED' ||
           error.description == 'net::ERR_TIMED_OUT') {
-        onUpdateState(showNoInternet: true, noInternet: true);
+        if (isMainFrame) {
+          onUpdateState(showNoInternet: true, noInternet: true);
+        }
         return;
       }
     }
 
     if (Platform.isIOS &&
         error.description == 'The Internet connection appears to be offline.') {
-      onUpdateState(showNoInternet: true, noInternet: true);
+      if (isMainFrame) {
+        onUpdateState(showNoInternet: true, noInternet: true);
+      }
       return;
     }
   }
