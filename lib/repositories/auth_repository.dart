@@ -2,8 +2,6 @@ import 'package:flutter_app_badge_control/flutter_app_badge_control.dart';
 import 'package:flutter_inappwebview/flutter_inappwebview.dart';
 import 'package:osaka_app/config/env_config.dart';
 import 'package:osaka_app/config/http_config.dart';
-import 'package:osaka_app/services/cookies/cookies_services.dart';
-import 'package:osaka_app/services/rest_api/fcm_service.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 /// Repository for user authentication and session management
@@ -70,7 +68,6 @@ class AuthRepository {
       await handleLogin(
         accessToken: accessToken,
         fcmToken: myDeviceToken,
-        url: url,
       );
     }
   }
@@ -87,7 +84,6 @@ class AuthRepository {
     } finally {
       SharedPreferences pref = await SharedPreferences.getInstance();
       pref.setString("loginStatus${env.env}", "logged-out");
-      pref.remove('cookies');
 
       // Clear the access token from HTTP client
       AppHttp.clearAccessToken();
@@ -103,7 +99,6 @@ class AuthRepository {
   Future<void> handleLogin({
     required Cookie accessToken,
     required String fcmToken,
-    required String url,
   }) async {
     SharedPreferences pref = await SharedPreferences.getInstance();
     AppHttp.setAccessToken(accessToken);
@@ -111,9 +106,6 @@ class AuthRepository {
     // Save FCM token with userId into database
     await saveDeviceToken(fcmToken: fcmToken);
     pref.setString("loginStatus${env.env}", "logged-in");
-
-    // Handle saving cookie issue on iOS
-    await saveCookies(url);
   }
 
   /// Get current login status

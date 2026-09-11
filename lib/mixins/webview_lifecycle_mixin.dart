@@ -85,8 +85,6 @@ mixin WebViewLifecycleMixin<T extends StatefulWidget> on State<T> {
     onControllerInitialized(controller);
     setController(controller: controller);
 
-    await restoreCookies(_webViewUrl, cookieManager);
-
     JsCommunicationService.defineRouteChangeFunction(
       controller: controller,
       // ignore: use_build_context_synchronously

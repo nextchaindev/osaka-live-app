@@ -12,7 +12,6 @@ import 'package:osaka_app/provider/webview_provider.dart';
 
 import 'provider/navigation_bar_provider.dart';
 import 'constants/common.dart';
-import 'provider/saved_cookie_provider.dart';
 import 'provider/download_provider.dart';
 import 'provider/theme_provider.dart';
 
@@ -37,7 +36,7 @@ Future<String> _resolveEnvironment() async {
   final bundleId = (await PackageInfo.fromPlatform()).packageName;
   return switch (bundleId) {
     'live.osaka' => 'prod',
-    'live.osaka.staging'  => 'staging',
+    'live.osaka.staging' => 'staging',
     _ => 'dev',
   };
 }
@@ -47,6 +46,7 @@ Future main() async {
   try {
     final environment = await _resolveEnvironment();
     await EnvConfig.initialize(environment);
+    await clearLegacyStoredCookies();
     await FirebaseConfig.initializeFirebaseApp(environment);
     await FirebaseConfig.instance.captureInitialMessage();
 
@@ -65,7 +65,6 @@ Future main() async {
       ChangeNotifierProvider<NavigationBarProvider>(
           create: (_) => NavigationBarProvider()),
       ChangeNotifierProvider(create: (context) => WebViewProvider()),
-      ChangeNotifierProvider(create: (context) => SavedCookieProvider()),
       ChangeNotifierProvider(create: (context) => DownloadProvider()),
     ],
     builder: ((providerContext, child) {
@@ -87,7 +86,6 @@ class _MyAppState extends State<MyApp> {
     super.initState();
     try {
       FirebaseConfig.instance.initialize(context);
-      checkExistCookie(context);
     } on Exception catch (e) {
       print(e);
     }
