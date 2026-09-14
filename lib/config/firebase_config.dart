@@ -303,7 +303,11 @@ class FirebaseConfig {
     }
   }
 
-  /// Show Flutter notification
+  /// Handles a notification received while the app is in the foreground.
+  ///
+  /// The Next.js app shown in the WebView owns the foreground in-app message
+  /// experience. Do not display a second native notification here, otherwise
+  /// users receive duplicate messaging for the same push.
   void showFlutterNotification(
       BuildContext context, RemoteMessage message) async {
     print('Foreground message received, skip notification display');
