@@ -90,6 +90,10 @@ class NativeChatMediaService {
         );
         final presignedUrl = presigned['presignedUrl']?.toString() ?? '';
         final key = presigned['key']?.toString() ?? '';
+        final uploadHeaders = _parseUploadHeaders(
+          presigned['uploadHeaders'],
+          fallbackContentType: prepared.mimeType,
+        );
         final uploadUri = Uri.tryParse(presignedUrl);
         if (uploadUri == null || uploadUri.scheme != 'https' || key.isEmpty) {
           throw const _NativeChatMediaException('invalid_upload_url');
@@ -99,8 +103,10 @@ class NativeChatMediaService {
           uploadUri,
           data: prepared.file.openRead(),
           options: Options(
-            contentType: prepared.mimeType,
-            headers: {Headers.contentLengthHeader: prepared.size},
+            headers: {
+              ...uploadHeaders,
+              Headers.contentLengthHeader: prepared.size,
+            },
             validateStatus: (status) => status != null && status < 400,
           ),
         );
@@ -291,6 +297,33 @@ class NativeChatMediaService {
       mimeType: canUseOriginal ? mimeType : 'video/mp4',
       size: canUseOriginal ? originalSize : compressedSize,
     );
+  }
+
+  Map<String, dynamic> _parseUploadHeaders(
+    dynamic value, {
+    required String fallbackContentType,
+  }) {
+    final headers = <String, dynamic>{};
+    if (value != null) {
+      if (value is! Map) {
+        throw const _NativeChatMediaException('invalid_upload_headers');
+      }
+
+      for (final entry in value.entries) {
+        if (entry.key is! String || entry.value is! String) {
+          throw const _NativeChatMediaException('invalid_upload_headers');
+        }
+        headers[entry.key as String] = entry.value as String;
+      }
+    }
+
+    final hasContentType = headers.keys.any(
+      (header) => header.toLowerCase() == Headers.contentTypeHeader,
+    );
+    if (!hasContentType) {
+      headers[Headers.contentTypeHeader] = fallbackContentType;
+    }
+    return headers;
   }
 
   Future<Map<String, dynamic>> _postJsonInPage(
