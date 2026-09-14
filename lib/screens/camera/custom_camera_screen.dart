@@ -1,5 +1,5 @@
-import 'dart:convert';
 import 'dart:async';
+import 'dart:convert';
 import 'dart:io';
 
 import 'package:camera/camera.dart';
@@ -9,8 +9,31 @@ import 'package:provider/provider.dart';
 import 'package:osaka_app/provider/webview_provider.dart';
 import 'package:video_player/video_player.dart';
 
+enum CustomCameraMode { video, photo }
+
+class CustomCameraCaptureResult {
+  const CustomCameraCaptureResult({
+    required this.file,
+    required this.mode,
+    required this.cameraFacing,
+    required this.duration,
+  });
+
+  final XFile file;
+  final CustomCameraMode mode;
+  final CameraLensDirection? cameraFacing;
+  final Duration duration;
+}
+
 class CustomCameraScreen extends StatefulWidget {
-  const CustomCameraScreen({super.key});
+  const CustomCameraScreen({
+    super.key,
+    this.mode = CustomCameraMode.video,
+    this.returnCaptureResult = false,
+  });
+
+  final CustomCameraMode mode;
+  final bool returnCaptureResult;
 
   @override
   State<CustomCameraScreen> createState() => _CustomCameraScreenState();
@@ -18,7 +41,10 @@ class CustomCameraScreen extends StatefulWidget {
 
 class _CustomCameraScreenState extends State<CustomCameraScreen>
     with WidgetsBindingObserver {
-  static const double _captureAspectRatio = 6 / 9;
+  static const _captureProfile = (
+    resolutionPreset: ResolutionPreset.medium,
+    portraitAspectRatio: 3 / 4,
+  );
   static const double _bottomControlsAreaHeight = 214;
   static const Duration _maxRecordingDuration = Duration(seconds: 30);
 
@@ -29,9 +55,11 @@ class _CustomCameraScreenState extends State<CustomCameraScreen>
   bool _isRecording = false;
   bool _isRecordingPaused = false;
   bool _isFinishingRecording = false;
+  bool _isTakingPhoto = false;
   bool _isTransferringVideo = false;
   bool _isSubmitted = false;
   XFile? _recordedVideo;
+  XFile? _capturedPhoto;
   VideoPlayerController? _recordedVideoController;
   String? _errorMessage;
   Duration _recordingDuration = Duration.zero;
@@ -124,8 +152,8 @@ class _CustomCameraScreenState extends State<CustomCameraScreen>
 
     final controller = CameraController(
       camera,
-      ResolutionPreset.medium,
-      enableAudio: true,
+      _captureProfile.resolutionPreset,
+      enableAudio: widget.mode == CustomCameraMode.video,
       imageFormatGroup: ImageFormatGroup.yuv420,
     );
 
@@ -146,6 +174,7 @@ class _CustomCameraScreenState extends State<CustomCameraScreen>
       _selectedCamera = camera;
       _isInitializing = false;
       _recordedVideo = null;
+      _capturedPhoto = null;
       _recordingDuration = Duration.zero;
       _isRecordingPaused = false;
     });
@@ -381,6 +410,11 @@ class _CustomCameraScreenState extends State<CustomCameraScreen>
   }
 
   Future<void> _handleRecordButtonTap() async {
+    if (widget.mode == CustomCameraMode.photo) {
+      await _takePhoto();
+      return;
+    }
+
     if (_isFinishingRecording || _isTransferringVideo) {
       return;
     }
@@ -391,6 +425,42 @@ class _CustomCameraScreenState extends State<CustomCameraScreen>
       await _resumeRecording();
     } else {
       await _pauseRecording();
+    }
+  }
+
+  Future<void> _takePhoto() async {
+    final controller = _cameraController;
+    if (controller == null ||
+        !controller.value.isInitialized ||
+        _isTakingPhoto ||
+        _isTransferringVideo) {
+      return;
+    }
+
+    setState(() {
+      _isTakingPhoto = true;
+      _errorMessage = null;
+    });
+
+    try {
+      await controller.resumePreview();
+      final file = await controller.takePicture();
+      await controller.pausePreview();
+      if (!mounted) {
+        return;
+      }
+      setState(() {
+        _capturedPhoto = file;
+        _isTakingPhoto = false;
+      });
+    } catch (_) {
+      if (!mounted) {
+        return;
+      }
+      setState(() {
+        _isTakingPhoto = false;
+        _errorMessage = 'Unable to take photo. Please try again.';
+      });
     }
   }
 
@@ -416,6 +486,7 @@ class _CustomCameraScreenState extends State<CustomCameraScreen>
 
     setState(() {
       _recordedVideo = null;
+      _capturedPhoto = null;
       _recordedVideoController = null;
       _recordingDuration = Duration.zero;
       _isRecording = false;
@@ -437,7 +508,7 @@ class _CustomCameraScreenState extends State<CustomCameraScreen>
       filePath: filePath,
       durationMs: _recordingDuration.inMilliseconds,
       cameraFacing: _selectedCamera?.lensDirection.name,
-      mediaType: 'video',
+      mediaType: widget.mode.name,
       errorMessage: _errorMessage,
     );
     _isSubmitted = true;
@@ -478,16 +549,34 @@ class _CustomCameraScreenState extends State<CustomCameraScreen>
     );
   }
 
-  Future<void> _confirmRecording() async {
+  Future<void> _confirmCapture() async {
     if (_isTransferringVideo) {
       return;
     }
 
-    final webViewProvider = context.read<WebViewProvider>();
-    final file = _recordedVideo ?? await _finishRecording();
+    final file = widget.mode == CustomCameraMode.photo
+        ? _capturedPhoto
+        : _recordedVideo ?? await _finishRecording();
     if (file == null) {
       return;
     }
+    if (!mounted) {
+      return;
+    }
+
+    if (widget.returnCaptureResult) {
+      Navigator.of(context).pop(
+        CustomCameraCaptureResult(
+          file: file,
+          mode: widget.mode,
+          cameraFacing: _selectedCamera?.lensDirection,
+          duration: _recordingDuration,
+        ),
+      );
+      return;
+    }
+
+    final webViewProvider = context.read<WebViewProvider>();
 
     if (mounted) {
       setState(() {
@@ -523,7 +612,9 @@ class _CustomCameraScreenState extends State<CustomCameraScreen>
       await _finishRecording();
     }
 
-    await _sendResult(status: 'cancelled', filePath: _recordedVideo?.path);
+    if (!widget.returnCaptureResult) {
+      await _sendResult(status: 'cancelled', filePath: _recordedVideo?.path);
+    }
 
     if (mounted) {
       Navigator.of(context).pop();
@@ -600,6 +691,19 @@ class _CustomCameraScreenState extends State<CustomCameraScreen>
   }
 
   Widget _buildPreview() {
+    if (_capturedPhoto != null) {
+      return Image.file(
+        File(_capturedPhoto!.path),
+        fit: BoxFit.cover,
+        errorBuilder: (_, __, ___) => Container(
+          color: const Color(0xFF2A2A2A),
+          child: const Center(
+            child: Icon(Icons.broken_image_outlined, color: Colors.white),
+          ),
+        ),
+      );
+    }
+
     if (_recordedVideo != null) {
       return _buildRecordedVideoPlayer();
     }
@@ -623,7 +727,7 @@ class _CustomCameraScreenState extends State<CustomCameraScreen>
       builder: (context, constraints) {
         final previewSize = controller.value.previewSize;
         final previewAspectRatio = previewSize == null
-            ? _captureAspectRatio
+            ? _captureProfile.portraitAspectRatio
             : previewSize.height / previewSize.width;
 
         return ClipRect(
@@ -656,14 +760,22 @@ class _CustomCameraScreenState extends State<CustomCameraScreen>
                 isDisabled: _isTransferringVideo,
               ),
             ),
-            const _GpsPill(),
-            if (!_isRecording && !_isFinishingRecording)
+            if (widget.returnCaptureResult)
+              _CameraModePill(mode: widget.mode)
+            else
+              const _GpsPill(),
+            if (!_isRecording &&
+                !_isFinishingRecording &&
+                _recordedVideo == null &&
+                _capturedPhoto == null)
               Align(
                 alignment: Alignment.centerRight,
                 child: _CircleIconButton(
                   icon: Icons.cameraswitch_rounded,
                   onTap: _toggleCamera,
-                  isDisabled: _isTransferringVideo || !_hasFrontAndBackCameras,
+                  isDisabled: _isTransferringVideo ||
+                      _isTakingPhoto ||
+                      !_hasFrontAndBackCameras,
                 ),
               ),
           ],
@@ -673,7 +785,7 @@ class _CustomCameraScreenState extends State<CustomCameraScreen>
   }
 
   Widget _buildBottomControls() {
-    if (_recordedVideo != null) {
+    if (_recordedVideo != null || _capturedPhoto != null) {
       return Padding(
         padding: EdgeInsets.fromLTRB(
           16,
@@ -700,7 +812,7 @@ class _CustomCameraScreenState extends State<CustomCameraScreen>
                   label: '다음',
                   backgroundColor: const Color(0xFFFF4C3A),
                   foregroundColor: Colors.white,
-                  onTap: _confirmRecording,
+                  onTap: _confirmCapture,
                   isLoading: _isTransferringVideo,
                 ),
               ),
@@ -722,9 +834,13 @@ class _CustomCameraScreenState extends State<CustomCameraScreen>
         mainAxisSize: MainAxisSize.max,
         children: [
           Text(
-            _isRecording
-                ? _formatDuration(_recordingDuration)
-                : '5-30초 라이브 영상만 허용',
+            widget.mode == CustomCameraMode.photo
+                ? '사진을 촬영해 주세요'
+                : _isRecording
+                    ? _formatDuration(_recordingDuration)
+                    : widget.returnCaptureResult
+                        ? '최대 30초까지 촬영할 수 있어요'
+                        : '5-30초 라이브 영상만 허용',
             style: TextStyle(
               color: Colors.white.withValues(alpha: 0.92),
               fontSize: _isRecording ? 20 : 12,
@@ -737,15 +853,21 @@ class _CustomCameraScreenState extends State<CustomCameraScreen>
             child: Stack(
               alignment: Alignment.center,
               children: [
-                _RecordButton(
-                  isRecording: _isRecording,
-                  isPaused: _isRecordingPaused,
-                  isBusy: _isFinishingRecording,
-                  progress: _recordingDuration.inMilliseconds /
-                      _maxRecordingDuration.inMilliseconds,
-                  onTap: _handleRecordButtonTap,
-                ),
-                if (_isRecording)
+                if (widget.mode == CustomCameraMode.photo)
+                  _PhotoCaptureButton(
+                    isBusy: _isTakingPhoto,
+                    onTap: _handleRecordButtonTap,
+                  )
+                else
+                  _RecordButton(
+                    isRecording: _isRecording,
+                    isPaused: _isRecordingPaused,
+                    isBusy: _isFinishingRecording,
+                    progress: _recordingDuration.inMilliseconds /
+                        _maxRecordingDuration.inMilliseconds,
+                    onTap: _handleRecordButtonTap,
+                  ),
+                if (widget.mode == CustomCameraMode.video && _isRecording)
                   Align(
                     alignment: Alignment.centerRight,
                     child: _DoneButton(
@@ -758,7 +880,10 @@ class _CustomCameraScreenState extends State<CustomCameraScreen>
           ),
           const SizedBox(height: 14),
           AnimatedOpacity(
-            opacity: _isRecording || _recordedVideo != null ? 0 : 1,
+            opacity:
+                _isRecording || _recordedVideo != null || _capturedPhoto != null
+                    ? 0
+                    : 1,
             duration: const Duration(milliseconds: 160),
             child: Container(
               padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
@@ -766,8 +891,12 @@ class _CustomCameraScreenState extends State<CustomCameraScreen>
                 color: Colors.black.withValues(alpha: 0.64),
                 borderRadius: BorderRadius.circular(999),
               ),
-              child: const Text(
-                '🔒 갤러리 업로드 불가 · 현장 라이브만',
+              child: Text(
+                widget.returnCaptureResult
+                    ? widget.mode == CustomCameraMode.photo
+                        ? '채팅에 보낼 사진을 촬영하세요'
+                        : '채팅에 보낼 동영상을 촬영하세요'
+                    : '🔒 갤러리 업로드 불가 · 현장 라이브만',
                 style: TextStyle(
                   color: Colors.white,
                   fontSize: 12,
@@ -804,14 +933,15 @@ class _CustomCameraScreenState extends State<CustomCameraScreen>
                   padding: const EdgeInsets.fromLTRB(12, 0, 12, 12),
                   child: Center(
                     child: AspectRatio(
-                      aspectRatio: _captureAspectRatio,
+                      aspectRatio: _captureProfile.portraitAspectRatio,
                       child: ClipRRect(
                         borderRadius: BorderRadius.circular(24),
                         child: Stack(
                           fit: StackFit.expand,
                           children: [
                             _buildPreview(),
-                            if (_recordedVideo == null)
+                            if (_recordedVideo == null &&
+                                _capturedPhoto == null)
                               const DecoratedBox(
                                 decoration: BoxDecoration(
                                   gradient: LinearGradient(
@@ -932,6 +1062,52 @@ class _RecordButton extends StatelessWidget {
   }
 }
 
+class _PhotoCaptureButton extends StatelessWidget {
+  const _PhotoCaptureButton({
+    required this.isBusy,
+    required this.onTap,
+  });
+
+  final bool isBusy;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return InkResponse(
+      onTap: isBusy ? null : onTap,
+      radius: 46,
+      child: AnimatedOpacity(
+        opacity: isBusy ? 0.55 : 1,
+        duration: const Duration(milliseconds: 160),
+        child: Container(
+          width: 78,
+          height: 78,
+          padding: const EdgeInsets.all(5),
+          decoration: BoxDecoration(
+            shape: BoxShape.circle,
+            border: Border.all(color: Colors.white, width: 4),
+          ),
+          child: Container(
+            decoration: const BoxDecoration(
+              color: Colors.white,
+              shape: BoxShape.circle,
+            ),
+            child: isBusy
+                ? const Padding(
+                    padding: EdgeInsets.all(19),
+                    child: CircularProgressIndicator(
+                      strokeWidth: 2.5,
+                      color: Color(0xFF181818),
+                    ),
+                  )
+                : null,
+          ),
+        ),
+      ),
+    );
+  }
+}
+
 class _CircleIconButton extends StatelessWidget {
   const _CircleIconButton({
     required this.icon,
@@ -1021,6 +1197,32 @@ class _GpsPill extends StatelessWidget {
       child: const Text(
         '통화 리뷰 · GPS 인증중',
         style: TextStyle(
+          color: Colors.white,
+          fontSize: 12,
+          fontWeight: FontWeight.w800,
+        ),
+      ),
+    );
+  }
+}
+
+class _CameraModePill extends StatelessWidget {
+  const _CameraModePill({required this.mode});
+
+  final CustomCameraMode mode;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 7),
+      decoration: BoxDecoration(
+        color: Colors.white.withValues(alpha: 0.1),
+        borderRadius: BorderRadius.circular(999),
+        border: Border.all(color: Colors.white.withValues(alpha: 0.1)),
+      ),
+      child: Text(
+        mode == CustomCameraMode.photo ? '사진' : '동영상 · 최대 30초',
+        style: const TextStyle(
           color: Colors.white,
           fontSize: 12,
           fontWeight: FontWeight.w800,

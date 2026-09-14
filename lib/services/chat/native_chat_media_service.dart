@@ -1,5 +1,6 @@
 import 'dart:convert';
 import 'dart:io';
+import 'dart:ui' show ImageFilter;
 
 import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
@@ -9,6 +10,7 @@ import 'package:flutter_inappwebview/flutter_inappwebview.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:light_compressor_v2/light_compressor_v2.dart';
 import 'package:path_provider/path_provider.dart';
+import 'package:osaka_app/screens/camera/custom_camera_screen.dart';
 
 class NativeChatMediaService {
   NativeChatMediaService._();
@@ -158,39 +160,15 @@ class NativeChatMediaService {
     final source = await showModalBottomSheet<_ChatMediaSource>(
       context: context,
       useRootNavigator: true,
-      showDragHandle: true,
-      builder: (sheetContext) => SafeArea(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            ListTile(
-              leading: const Icon(Icons.photo_library_outlined),
-              title: const Text('사진 및 동영상 선택'),
-              onTap: () => Navigator.pop(
-                sheetContext,
-                _ChatMediaSource.library,
-              ),
-            ),
-            ListTile(
-              leading: const Icon(Icons.photo_camera_outlined),
-              title: const Text('사진 촬영'),
-              onTap: () => Navigator.pop(
-                sheetContext,
-                _ChatMediaSource.cameraImage,
-              ),
-            ),
-            ListTile(
-              leading: const Icon(Icons.videocam_outlined),
-              title: const Text('동영상 촬영'),
-              onTap: () => Navigator.pop(
-                sheetContext,
-                _ChatMediaSource.cameraVideo,
-              ),
-            ),
-          ],
-        ),
+      backgroundColor: Colors.transparent,
+      barrierColor: Colors.black.withValues(
+        alpha: Platform.isAndroid ? 0.28 : 0.18,
       ),
+      builder: (_) => const _ChatMediaPickerSheet(),
     );
+    if (!context.mounted) {
+      return [];
+    }
 
     switch (source) {
       case _ChatMediaSource.library:
@@ -199,17 +177,35 @@ class NativeChatMediaService {
           requestFullMetadata: false,
         );
       case _ChatMediaSource.cameraImage:
-        final file = await _picker.pickImage(
-          source: ImageSource.camera,
-          requestFullMetadata: false,
+        return _captureWithCustomCamera(
+          context,
+          CustomCameraMode.photo,
         );
-        return file == null ? [] : [file];
       case _ChatMediaSource.cameraVideo:
-        final file = await _picker.pickVideo(source: ImageSource.camera);
-        return file == null ? [] : [file];
+        return _captureWithCustomCamera(
+          context,
+          CustomCameraMode.video,
+        );
       case null:
         return [];
     }
+  }
+
+  Future<List<XFile>> _captureWithCustomCamera(
+    BuildContext context,
+    CustomCameraMode mode,
+  ) async {
+    final result = await Navigator.of(context, rootNavigator: true)
+        .push<CustomCameraCaptureResult>(
+      MaterialPageRoute(
+        fullscreenDialog: true,
+        builder: (_) => CustomCameraScreen(
+          mode: mode,
+          returnCaptureResult: true,
+        ),
+      ),
+    );
+    return result == null ? [] : [result.file];
   }
 
   Future<_PreparedChatMedia> _prepareMedia(
@@ -266,6 +262,7 @@ class NativeChatMediaService {
       videoQuality: VideoQuality.medium,
       video: Video(
         videoName: 'chat-video-${DateTime.now().millisecondsSinceEpoch}.mp4',
+        keepOriginalResolution: true,
         targetSizeMb: _targetVideoSizeMb,
         videoFps: 30,
       ),
@@ -434,6 +431,255 @@ class _PreparedChatMedia {
 }
 
 enum _ChatMediaSource { library, cameraImage, cameraVideo }
+
+class _ChatMediaPickerSheet extends StatelessWidget {
+  const _ChatMediaPickerSheet();
+
+  static const _brandColor = Color(0xFFFF4038);
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+    final isAndroid = Platform.isAndroid;
+    final surfaceColor = isAndroid
+        ? isDark
+            ? const Color(0xE61D1D20)
+            : const Color(0xE6FFFFFF)
+        : isDark
+            ? const Color(0xA61D1D20)
+            : const Color(0xB8FFFFFF);
+    final cardColor = isAndroid
+        ? isDark
+            ? const Color(0xE629292D)
+            : const Color(0xD9F7F7F9)
+        : isDark
+            ? const Color(0x8F29292D)
+            : const Color(0x99F7F7F9);
+    final borderColor =
+        isDark ? const Color(0x8AFFFFFF) : const Color(0x70FFFFFF);
+    final primaryText = isDark ? Colors.white : const Color(0xFF18181B);
+    final secondaryText =
+        isDark ? const Color(0xFFA7A7AF) : const Color(0xFF777781);
+
+    const sheetRadius = BorderRadius.vertical(top: Radius.circular(30));
+
+    return Container(
+      decoration: BoxDecoration(
+        borderRadius: sheetRadius,
+        boxShadow: const [
+          BoxShadow(
+            color: Color(0x29000000),
+            blurRadius: 32,
+            offset: Offset(0, -8),
+          ),
+        ],
+      ),
+      child: ClipRRect(
+        borderRadius: sheetRadius,
+        child: BackdropFilter(
+          filter: ImageFilter.blur(
+            sigmaX: isAndroid ? 20 : 32,
+            sigmaY: isAndroid ? 20 : 32,
+          ),
+          child: Container(
+            decoration: BoxDecoration(
+              color: surfaceColor,
+              borderRadius: sheetRadius,
+              border: Border(
+                top: BorderSide(
+                  color: Colors.white.withValues(alpha: isDark ? 0.12 : 0.7),
+                ),
+              ),
+            ),
+            padding: const EdgeInsets.fromLTRB(20, 10, 20, 14),
+            child: SafeArea(
+              top: false,
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Center(
+                    child: Container(
+                      width: 42,
+                      height: 5,
+                      decoration: BoxDecoration(
+                        color: isDark
+                            ? const Color(0xFF505057)
+                            : const Color(0xFFD8D8DE),
+                        borderRadius: BorderRadius.circular(99),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 22),
+                  Text(
+                    '미디어 첨부',
+                    style: TextStyle(
+                      color: primaryText,
+                      fontSize: 21,
+                      height: 1.2,
+                      fontWeight: FontWeight.w800,
+                      letterSpacing: -0.4,
+                    ),
+                  ),
+                  const SizedBox(height: 7),
+                  Text(
+                    '사진 또는 동영상을 선택해 주세요',
+                    style: TextStyle(
+                      color: secondaryText,
+                      fontSize: 14,
+                      height: 1.35,
+                      fontWeight: FontWeight.w500,
+                      letterSpacing: -0.15,
+                    ),
+                  ),
+                  const SizedBox(height: 22),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: _ChatMediaSourceButton(
+                          icon: Icons.photo_library_rounded,
+                          label: '앨범',
+                          iconColor: const Color(0xFF7657E8),
+                          iconBackground: const Color(0xFFEDE8FF),
+                          cardColor: cardColor,
+                          borderColor: borderColor,
+                          textColor: primaryText,
+                          onTap: () => Navigator.pop(
+                            context,
+                            _ChatMediaSource.library,
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 10),
+                      Expanded(
+                        child: _ChatMediaSourceButton(
+                          icon: Icons.photo_camera_rounded,
+                          label: '사진',
+                          iconColor: _brandColor,
+                          iconBackground: const Color(0xFFFFE9E7),
+                          cardColor: cardColor,
+                          borderColor: borderColor,
+                          textColor: primaryText,
+                          onTap: () => Navigator.pop(
+                            context,
+                            _ChatMediaSource.cameraImage,
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 10),
+                      Expanded(
+                        child: _ChatMediaSourceButton(
+                          icon: Icons.videocam_rounded,
+                          label: '동영상',
+                          iconColor: const Color(0xFF2F80ED),
+                          iconBackground: const Color(0xFFE5F0FF),
+                          cardColor: cardColor,
+                          borderColor: borderColor,
+                          textColor: primaryText,
+                          onTap: () => Navigator.pop(
+                            context,
+                            _ChatMediaSource.cameraVideo,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 18),
+                  SizedBox(
+                    width: double.infinity,
+                    height: 52,
+                    child: TextButton(
+                      onPressed: () => Navigator.pop(context),
+                      style: TextButton.styleFrom(
+                        foregroundColor: primaryText,
+                        backgroundColor: cardColor,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(16),
+                        ),
+                        textStyle: const TextStyle(
+                          fontSize: 15,
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
+                      child: const Text('취소'),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _ChatMediaSourceButton extends StatelessWidget {
+  const _ChatMediaSourceButton({
+    required this.icon,
+    required this.label,
+    required this.iconColor,
+    required this.iconBackground,
+    required this.cardColor,
+    required this.borderColor,
+    required this.textColor,
+    required this.onTap,
+  });
+
+  final IconData icon;
+  final String label;
+  final Color iconColor;
+  final Color iconBackground;
+  final Color cardColor;
+  final Color borderColor;
+  final Color textColor;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return Material(
+      color: cardColor,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(20),
+        side: BorderSide(color: borderColor),
+      ),
+      clipBehavior: Clip.antiAlias,
+      child: InkWell(
+        onTap: onTap,
+        child: SizedBox(
+          height: 116,
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Container(
+                width: 50,
+                height: 50,
+                decoration: BoxDecoration(
+                  color: iconBackground,
+                  borderRadius: BorderRadius.circular(17),
+                ),
+                child: Icon(icon, size: 26, color: iconColor),
+              ),
+              const SizedBox(height: 12),
+              Text(
+                label,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: TextStyle(
+                  color: textColor,
+                  fontSize: 14,
+                  fontWeight: FontWeight.w700,
+                  letterSpacing: -0.15,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
 
 class _NativeChatMediaException implements Exception {
   const _NativeChatMediaException(this.code);

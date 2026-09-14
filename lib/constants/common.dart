@@ -25,5 +25,10 @@ const String iOSForceUpdateVerion = 'ios_force_update_version';
 const String androidLastestLiveVersion = 'android_latest_live_version';
 const String iOSLastestLiveVersion = 'ios_latest_live_version';
 
-const List<String> routeNoSafeArea = ['/sessions/', '/introduce', '/map'];
-const List<String> routeNoBottomSafeArea = ['/introduce'];
+const List<String> routeNoSafeArea = [
+  '/sessions/',
+  '/introduce',
+  '/map',
+  '/setting'
+];
+const List<String> routeNoBottomSafeArea = ['/introduce', '/sessions/'];

@@ -1,10 +1,14 @@
 # default variables (can be overridden when calling make)
 FLAVOR ?= dev
 ENVIRONMENT ?= dev
+RUN_MODE ?= release
 
-# Run application (debug mode)
+# Run application (release mode by default so iOS can launch without a debugger)
 run:
-	flutter run --flavor $(FLAVOR) --dart-define=ENVIRONMENT=$(ENVIRONMENT)
+	flutter run --flavor $(FLAVOR) --dart-define=ENVIRONMENT=$(ENVIRONMENT) --$(RUN_MODE)
+
+run-debug:
+	$(MAKE) run RUN_MODE=debug
 
 run-dev:
 	make run FLAVOR=dev ENVIRONMENT=dev
@@ -97,7 +101,7 @@ clean:
 
 # Run application in release mode
 run-release:
-	flutter run --flavor prod --dart-define=ENVIRONMENT=prod --release
+	$(MAKE) run FLAVOR=prod ENVIRONMENT=prod RUN_MODE=release
 
 build-runner:
 	dart run build_runner build --delete-conflicting-outputs

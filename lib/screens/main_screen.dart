@@ -491,7 +491,7 @@ class _MyHomePageState extends State<MyHomePage>
                         color: Colors.white,
                         child: SafeArea(
                           top: !disableTopSafeArea,
-                          bottom: !disableBottomSafeArea,
+                          bottom: false,
                           child: Navigator(
                             key: _navigatorKeys[0],
                             onGenerateRoute: (routeSettings) {
