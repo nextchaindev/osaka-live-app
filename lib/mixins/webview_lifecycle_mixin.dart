@@ -497,8 +497,7 @@ mixin WebViewLifecycleMixin<T extends StatefulWidget> on State<T> {
         context: context,
         dialogContext: dialogContext,
         url: url,
-        options: options,
-        webinitialUrl: _webViewUrl);
+        options: options);
     return true;
   }
 }

@@ -6,6 +6,24 @@ import 'package:dio/dio.dart';
 import 'package:open_file/open_file.dart';
 import 'package:path_provider/path_provider.dart';
 
+/// Returns a safe single-segment filename for use inside the app's download
+/// directory. WebView-provided names must never be allowed to influence the
+/// directory portion of a local path.
+String sanitizeDownloadFileName(String value, {String fallback = 'download'}) {
+  final fileName = value
+      .trim()
+      .split(RegExp(r'[\\/]+'))
+      .last
+      .replaceAll(RegExp(r'[\x00-\x1F<>:"|?*]'), '_')
+      .trim();
+
+  if (fileName.isEmpty || fileName == '.' || fileName == '..') {
+    return fallback;
+  }
+
+  return fileName;
+}
+
 /// Pure service for handling file downloads
 /// Contains only business logic, no UI dependencies
 class DownloadService {
@@ -18,15 +36,12 @@ class DownloadService {
   }) async {
     try {
       Dio dio = Dio();
-      String fileName;
-      if (url.toString().lastIndexOf('?') > 0) {
-        fileName = url.toString().substring(url.toString().lastIndexOf('/') + 1,
-            url.toString().lastIndexOf('?'));
-      } else {
-        fileName =
-            url.toString().substring(url.toString().lastIndexOf('/') + 1);
-      }
-      String savePath = await _getFilePath(base64Str != null ? name : fileName);
+      final urlFileName = Uri.tryParse(url)?.pathSegments.lastOrNull ?? '';
+      final fileName = sanitizeDownloadFileName(
+        name,
+        fallback: sanitizeDownloadFileName(urlFileName),
+      );
+      String savePath = await _getFilePath(fileName);
 
       // Handle base64 or URL download
       if (base64Str != null) {
@@ -35,7 +50,7 @@ class DownloadService {
           final bytes = base64Decode(base64Data);
 
           final dir = await getApplicationDocumentsDirectory();
-          final file = File('${dir.path}/$name');
+          final file = File('${dir.path}/$fileName');
           await file.writeAsBytes(bytes);
           streamController.add('100%');
           onProgress('100%');

@@ -1,14 +1,10 @@
-import 'dart:io';
-
 import 'package:flutter/foundation.dart';
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_inappwebview/flutter_inappwebview.dart';
 import 'package:flutter_svg/svg.dart';
-import 'package:provider/provider.dart';
 import 'package:osaka_app/helpers/themes.dart';
 import 'package:osaka_app/helpers/icons.dart';
-import 'package:osaka_app/provider/webview_provider.dart';
 
 class WebviewWindow {
   void createWindow({
@@ -23,14 +19,10 @@ class WebviewWindow {
     required BuildContext? dialogContext,
     required String url,
     required InAppWebViewSettings options,
-    required String webinitialUrl,
   }) async {
     final Set<Factory<OneSequenceGestureRecognizer>> gestureRecognizers = {
       Factory(() => EagerGestureRecognizer())
     };
-
-    final provider = Provider.of<WebViewProvider>(context, listen: false);
-    InAppWebViewController? webViewController = provider.controller;
 
     UniqueKey key = UniqueKey();
     setIsOpenDialog(true);
@@ -141,40 +133,7 @@ class WebviewWindow {
                             (InAppWebViewController controller) {},
                         onCloseWindow: (controller) => {print('close window')},
                         onLoadStart: (windowController, loadUrl) {},
-                        shouldOverrideUrlLoading:
-                            (controller, navigationAction) async {
-                          Map<String, String> params =
-                              navigationAction.request.url!.queryParameters;
-                          if (params['token_version_id'] != null &&
-                              params['enc_data'] != null &&
-                              params['integrity_value'] != null &&
-                              !navigationAction.request.url!
-                                  .toString()
-                                  .toString()
-                                  .contains("nice.checkplus.co.kr") &&
-                              Platform.isIOS) {
-                            webViewController!.loadUrl(
-                                urlRequest: URLRequest(
-                                    url: navigationAction.request.url!));
-
-                            Future.delayed(const Duration(milliseconds: 200),
-                                () {
-                              if (context.mounted) {
-                                Navigator.of(context).pop();
-                              }
-                            });
-                            return NavigationActionPolicy.CANCEL;
-                          }
-                          return NavigationActionPolicy.ALLOW;
-                        },
                         onLoadStop: (controller, loadUrl) async {
-                          if (loadUrl.toString().contains("prompt=none")) {
-                            webViewController!.loadUrl(
-                                urlRequest: URLRequest(
-                                    url: WebUri.uri(Uri.parse(
-                                        '${webinitialUrl}join/join'))));
-                          }
-
                           setState(() {
                             isNewWindowLoading = false;
                           });
@@ -202,8 +161,7 @@ class WebviewWindow {
                               context: context,
                               dialogContext: dialogContext,
                               url: url,
-                              options: options,
-                              webinitialUrl: webinitialUrl);
+                              options: options);
                           return true;
                         },
                         onProgressChanged: (controller, progress) {},
