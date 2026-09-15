@@ -253,6 +253,34 @@ class JsCommunicationService {
                 return;
               }
 
+              if (decoded is Map<String, dynamic> &&
+                  (decoded['type'] == 'pick_image' ||
+                      decoded['type'] == 'pick_avatar')) {
+                final requestId = decoded['requestId']?.toString() ?? '';
+                if (requestId.isEmpty) {
+                  debugPrint('Ignored invalid native image request');
+                  return;
+                }
+                final purpose = decoded['type'] == 'pick_avatar' ||
+                        decoded['purpose'] == 'avatar'
+                    ? NativeImagePurpose.avatar
+                    : decoded['purpose'] == 'venue_thumbnail'
+                        ? NativeImagePurpose.venueThumbnail
+                        : null;
+                if (purpose == null) {
+                  debugPrint(
+                      'Ignored native image request with invalid purpose');
+                  return;
+                }
+                await NativeChatMediaService.instance.pickImageAndDispatch(
+                  controller: controller,
+                  context: context,
+                  requestId: requestId,
+                  purpose: purpose,
+                );
+                return;
+              }
+
               final postedMessage = WebPostMessage.fromJson(
                 decoded as Map<String, dynamic>,
               );

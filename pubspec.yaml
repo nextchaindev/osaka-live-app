@@ -37,6 +37,7 @@ dependencies:
   video_player: ^2.9.2
   image_picker: ^1.2.1
   flutter_image_compress: ^2.4.0
+  image: ^4.8.0
   light_compressor_v2: ^1.9.1
 
   # to download files
@@ -66,6 +67,9 @@ dependencies:
 
 dependency_overrides:
   permission_handler_apple: 9.4.5
+  # Avoid the 2.6.0 FFI/native-asset implementation, which embeds
+  # objective_c.framework without a dSYM in iOS archives.
+  path_provider_foundation: 2.5.1
 
 dev_dependencies:
   flutter_test:

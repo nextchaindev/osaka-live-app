@@ -30,10 +30,12 @@ class CustomCameraScreen extends StatefulWidget {
     super.key,
     this.mode = CustomCameraMode.video,
     this.returnCaptureResult = false,
+    this.previewAspectRatio,
   });
 
   final CustomCameraMode mode;
   final bool returnCaptureResult;
+  final double? previewAspectRatio;
 
   @override
   State<CustomCameraScreen> createState() => _CustomCameraScreenState();
@@ -47,6 +49,9 @@ class _CustomCameraScreenState extends State<CustomCameraScreen>
   );
   static const double _bottomControlsAreaHeight = 214;
   static const Duration _maxRecordingDuration = Duration(seconds: 30);
+
+  double get _frameAspectRatio =>
+      widget.previewAspectRatio ?? _captureProfile.portraitAspectRatio;
 
   List<CameraDescription> _cameras = <CameraDescription>[];
   CameraController? _cameraController;
@@ -727,7 +732,7 @@ class _CustomCameraScreenState extends State<CustomCameraScreen>
       builder: (context, constraints) {
         final previewSize = controller.value.previewSize;
         final previewAspectRatio = previewSize == null
-            ? _captureProfile.portraitAspectRatio
+            ? _frameAspectRatio
             : previewSize.height / previewSize.width;
 
         return ClipRect(
@@ -933,7 +938,7 @@ class _CustomCameraScreenState extends State<CustomCameraScreen>
                   padding: const EdgeInsets.fromLTRB(12, 0, 12, 12),
                   child: Center(
                     child: AspectRatio(
-                      aspectRatio: _captureProfile.portraitAspectRatio,
+                      aspectRatio: _frameAspectRatio,
                       child: ClipRRect(
                         borderRadius: BorderRadius.circular(24),
                         child: Stack(

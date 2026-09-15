@@ -7,10 +7,12 @@ import 'package:flutter/material.dart';
 import 'package:flutter_image_compress/flutter_image_compress.dart'
     as image_compress;
 import 'package:flutter_inappwebview/flutter_inappwebview.dart';
+import 'package:image/image.dart' as image;
 import 'package:image_picker/image_picker.dart';
 import 'package:light_compressor_v2/light_compressor_v2.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:osaka_app/screens/camera/custom_camera_screen.dart';
+import 'package:osaka_app/services/permission/permission_service.dart';
 
 class NativeChatMediaService {
   NativeChatMediaService._();
@@ -21,11 +23,95 @@ class NativeChatMediaService {
   static const int _maxFileBytes = 25 * 1024 * 1024;
   static const int _targetVideoSizeMb = 22;
   static const String _resultEvent = 'osaka-live-chat-media-picker-result';
+  static const String _imageResultEvent = 'osaka-live-image-picker-result';
+  static const int _imageOutputSize = 1024;
 
   final ImagePicker _picker = ImagePicker();
   final LightCompressor _videoCompressor = LightCompressor();
   final Dio _uploadClient = Dio();
   bool _isPicking = false;
+
+  /// Uses the same native-media bridge as chat, but returns one square JPEG
+  /// for WebView image-upload flows instead of uploading a chat attachment.
+  Future<void> pickImageAndDispatch({
+    required InAppWebViewController controller,
+    required BuildContext context,
+    required String requestId,
+    required NativeImagePurpose purpose,
+  }) async {
+    if (!context.mounted) {
+      await _dispatchImageResult(
+        controller,
+        requestId: requestId,
+        status: 'error',
+        errorCode: 'view_unavailable',
+      );
+      return;
+    }
+    if (_isPicking) {
+      await _dispatchImageResult(
+        controller,
+        requestId: requestId,
+        status: 'error',
+        errorCode: 'picker_busy',
+      );
+      return;
+    }
+
+    _isPicking = true;
+    try {
+      final source = await _showImageSourcePicker(context, purpose);
+      if (source == null) {
+        await _dispatchImageResult(
+          controller,
+          requestId: requestId,
+          status: 'cancelled',
+        );
+        return;
+      }
+      if (!context.mounted) {
+        throw const _NativeChatMediaException('view_unavailable');
+      }
+
+      final selected = await _pickImage(context, source);
+      if (selected == null) {
+        await _dispatchImageResult(
+          controller,
+          requestId: requestId,
+          status: 'cancelled',
+        );
+        return;
+      }
+
+      final bytes = await _cropImageToSquareJpeg(selected);
+      await _dispatchImageResult(
+        controller,
+        requestId: requestId,
+        status: 'success',
+        image: {
+          'fileName': 'image-${DateTime.now().millisecondsSinceEpoch}.jpg',
+          'mimeType': 'image/jpeg',
+          'sizeBytes': bytes.length,
+          'dataUrl': 'data:image/jpeg;base64,${base64Encode(bytes)}',
+          'width': _imageOutputSize,
+          'height': _imageOutputSize,
+        },
+      );
+    } catch (error, stackTrace) {
+      debugPrint('[Image] native picker failed: $error');
+      debugPrintStack(stackTrace: stackTrace);
+      await _dispatchImageResult(
+        controller,
+        requestId: requestId,
+        status: 'error',
+        errorCode: error is _NativeChatMediaException
+            ? error.code
+            : 'native_image_failed',
+      );
+    } finally {
+      _isPicking = false;
+    }
+  }
 
   Future<void> pickCompressAndUpload({
     required InAppWebViewController controller,
@@ -161,6 +247,102 @@ class NativeChatMediaService {
       _isPicking = false;
     }
   }
+
+  Future<_ChatMediaSource?> _showImageSourcePicker(
+    BuildContext context,
+    NativeImagePurpose purpose,
+  ) {
+    return showModalBottomSheet<_ChatMediaSource>(
+      context: context,
+      useRootNavigator: true,
+      backgroundColor: Colors.transparent,
+      barrierColor: Colors.black.withValues(
+        alpha: Platform.isAndroid ? 0.28 : 0.18,
+      ),
+      builder: (_) => _ChatMediaPickerSheet(
+        includeVideo: false,
+        title: purpose == NativeImagePurpose.avatar ? '프로필 사진' : '대표 사진',
+        description: '사진을 선택해 주세요',
+      ),
+    );
+  }
+
+  Future<XFile?> _pickImage(
+    BuildContext context,
+    _ChatMediaSource source,
+  ) async {
+    if (source == _ChatMediaSource.library) {
+      return _picker.pickImage(
+        source: ImageSource.gallery,
+        requestFullMetadata: false,
+      );
+    }
+
+    final granted = await PermissionService().requestCameraPermission();
+    if (!granted) {
+      throw const _NativeChatMediaException('camera_permission_denied');
+    }
+    if (!context.mounted) {
+      throw const _NativeChatMediaException('view_unavailable');
+    }
+    final capture = await Navigator.of(context, rootNavigator: true)
+        .push<CustomCameraCaptureResult>(
+      MaterialPageRoute(
+        fullscreenDialog: true,
+        builder: (_) => const CustomCameraScreen(
+          mode: CustomCameraMode.photo,
+          returnCaptureResult: true,
+          previewAspectRatio: 1,
+        ),
+      ),
+    );
+    return capture?.file;
+  }
+
+  Future<List<int>> _cropImageToSquareJpeg(XFile source) async {
+    final decoded = image.decodeImage(await File(source.path).readAsBytes());
+    if (decoded == null) {
+      throw const _NativeChatMediaException('invalid_image');
+    }
+    final oriented = image.bakeOrientation(decoded);
+    final side =
+        oriented.width < oriented.height ? oriented.width : oriented.height;
+    final cropped = image.copyCrop(
+      oriented,
+      x: (oriented.width - side) ~/ 2,
+      y: (oriented.height - side) ~/ 2,
+      width: side,
+      height: side,
+    );
+    final resized = image.copyResize(
+      cropped,
+      width: _imageOutputSize,
+      height: _imageOutputSize,
+      interpolation: image.Interpolation.average,
+    );
+    return image.encodeJpg(resized, quality: 85);
+  }
+
+  Future<void> _dispatchImageResult(
+    InAppWebViewController controller, {
+    required String requestId,
+    required String status,
+    Map<String, dynamic>? image,
+    String? errorCode,
+  }) =>
+      controller.evaluateJavascript(
+        source: '''
+      window.dispatchEvent(new CustomEvent(
+        '$_imageResultEvent',
+        {detail: ${jsonEncode({
+              'requestId': requestId,
+              'status': status,
+              if (image != null) 'image': image,
+              if (errorCode != null) 'errorCode': errorCode,
+            })}}
+      ));
+    ''',
+      );
 
   Future<List<XFile>> _pickMedia(BuildContext context, int maxFiles) async {
     final source = await showModalBottomSheet<_ChatMediaSource>(
@@ -463,12 +645,22 @@ class _PreparedChatMedia {
   final int size;
 }
 
+enum NativeImagePurpose { avatar, venueThumbnail }
+
 enum _ChatMediaSource { library, cameraImage, cameraVideo }
 
 class _ChatMediaPickerSheet extends StatelessWidget {
-  const _ChatMediaPickerSheet();
+  const _ChatMediaPickerSheet({
+    this.includeVideo = true,
+    this.title = '미디어 첨부',
+    this.description = '사진 또는 동영상을 선택해 주세요',
+  });
 
   static const _brandColor = Color(0xFFFF4038);
+
+  final bool includeVideo;
+  final String title;
+  final String description;
 
   @override
   Widget build(BuildContext context) {
@@ -480,15 +672,15 @@ class _ChatMediaPickerSheet extends StatelessWidget {
             ? const Color(0xE61D1D20)
             : const Color(0xE6FFFFFF)
         : isDark
-            ? const Color(0xA61D1D20)
-            : const Color(0xB8FFFFFF);
+            ? const Color(0xF21D1D20)
+            : const Color(0xFFE2E2E7);
     final cardColor = isAndroid
         ? isDark
             ? const Color(0xE629292D)
             : const Color(0xD9F7F7F9)
         : isDark
-            ? const Color(0x8F29292D)
-            : const Color(0x99F7F7F9);
+            ? const Color(0xF229292D)
+            : const Color(0xFFF7F7F9);
     final borderColor =
         isDark ? const Color(0x8AFFFFFF) : const Color(0x70FFFFFF);
     final primaryText = isDark ? Colors.white : const Color(0xFF18181B);
@@ -500,21 +692,12 @@ class _ChatMediaPickerSheet extends StatelessWidget {
     return Container(
       decoration: BoxDecoration(
         borderRadius: sheetRadius,
-        boxShadow: const [
-          BoxShadow(
-            color: Color(0x29000000),
-            blurRadius: 32,
-            offset: Offset(0, -8),
-          ),
-        ],
       ),
       child: ClipRRect(
         borderRadius: sheetRadius,
-        child: BackdropFilter(
-          filter: ImageFilter.blur(
-            sigmaX: isAndroid ? 20 : 32,
-            sigmaY: isAndroid ? 20 : 32,
-          ),
+        child: _PlatformBackdrop(
+          enabled: !Platform.isIOS,
+          sigma: isAndroid ? 20 : 32,
           child: Container(
             decoration: BoxDecoration(
               color: surfaceColor,
@@ -546,7 +729,7 @@ class _ChatMediaPickerSheet extends StatelessWidget {
                   ),
                   const SizedBox(height: 22),
                   Text(
-                    '미디어 첨부',
+                    title,
                     style: TextStyle(
                       color: primaryText,
                       fontSize: 21,
@@ -557,7 +740,7 @@ class _ChatMediaPickerSheet extends StatelessWidget {
                   ),
                   const SizedBox(height: 7),
                   Text(
-                    '사진 또는 동영상을 선택해 주세요',
+                    description,
                     style: TextStyle(
                       color: secondaryText,
                       fontSize: 14,
@@ -600,22 +783,24 @@ class _ChatMediaPickerSheet extends StatelessWidget {
                           ),
                         ),
                       ),
-                      const SizedBox(width: 10),
-                      Expanded(
-                        child: _ChatMediaSourceButton(
-                          icon: Icons.videocam_rounded,
-                          label: '동영상',
-                          iconColor: const Color(0xFF2F80ED),
-                          iconBackground: const Color(0xFFE5F0FF),
-                          cardColor: cardColor,
-                          borderColor: borderColor,
-                          textColor: primaryText,
-                          onTap: () => Navigator.pop(
-                            context,
-                            _ChatMediaSource.cameraVideo,
+                      if (includeVideo) ...[
+                        const SizedBox(width: 10),
+                        Expanded(
+                          child: _ChatMediaSourceButton(
+                            icon: Icons.videocam_rounded,
+                            label: '동영상',
+                            iconColor: const Color(0xFF2F80ED),
+                            iconBackground: const Color(0xFFE5F0FF),
+                            cardColor: cardColor,
+                            borderColor: borderColor,
+                            textColor: primaryText,
+                            onTap: () => Navigator.pop(
+                              context,
+                              _ChatMediaSource.cameraVideo,
+                            ),
                           ),
                         ),
-                      ),
+                      ],
                     ],
                   ),
                   const SizedBox(height: 18),
@@ -644,6 +829,29 @@ class _ChatMediaPickerSheet extends StatelessWidget {
           ),
         ),
       ),
+    );
+  }
+}
+
+class _PlatformBackdrop extends StatelessWidget {
+  const _PlatformBackdrop({
+    required this.enabled,
+    required this.sigma,
+    required this.child,
+  });
+
+  final bool enabled;
+  final double sigma;
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context) {
+    if (!enabled) {
+      return child;
+    }
+    return BackdropFilter(
+      filter: ImageFilter.blur(sigmaX: sigma, sigmaY: sigma),
+      child: child,
     );
   }
 }
