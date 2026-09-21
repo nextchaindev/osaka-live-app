@@ -1,9 +1,11 @@
+import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
 import 'dart:ui' show ImageFilter;
 
 import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart' show PlatformException;
 import 'package:flutter_image_compress/flutter_image_compress.dart'
     as image_compress;
 import 'package:flutter_inappwebview/flutter_inappwebview.dart';
@@ -12,6 +14,7 @@ import 'package:image_picker/image_picker.dart';
 import 'package:light_compressor_v2/light_compressor_v2.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:osaka_app/screens/camera/custom_camera_screen.dart';
+import 'package:osaka_app/services/analytics/analytics_service.dart';
 import 'package:osaka_app/services/permission/permission_service.dart';
 
 class NativeChatMediaService {
@@ -29,6 +32,7 @@ class NativeChatMediaService {
   final ImagePicker _picker = ImagePicker();
   final LightCompressor _videoCompressor = LightCompressor();
   final Dio _uploadClient = Dio();
+  final AnalyticsService _analytics = AnalyticsService();
   bool _isPicking = false;
 
   /// Uses the same native-media bridge as chat, but returns one square JPEG
@@ -40,6 +44,12 @@ class NativeChatMediaService {
     required NativeImagePurpose purpose,
   }) async {
     if (!context.mounted) {
+      _trackFlow(
+        flow: 'image',
+        stage: 'request',
+        outcome: 'error',
+        errorCode: 'view_unavailable',
+      );
       await _dispatchImageResult(
         controller,
         requestId: requestId,
@@ -49,6 +59,12 @@ class NativeChatMediaService {
       return;
     }
     if (_isPicking) {
+      _trackFlow(
+        flow: 'image',
+        stage: 'request',
+        outcome: 'error',
+        errorCode: 'picker_busy',
+      );
       await _dispatchImageResult(
         controller,
         requestId: requestId,
@@ -59,9 +75,14 @@ class NativeChatMediaService {
     }
 
     _isPicking = true;
+    var stage = 'source_sheet';
+    _ChatMediaSource? selectedSource;
+    _trackFlow(flow: 'image', stage: 'request', outcome: 'started');
     try {
       final source = await _showImageSourcePicker(context, purpose);
+      selectedSource = source;
       if (source == null) {
+        _trackFlow(flow: 'image', stage: stage, outcome: 'cancelled');
         await _dispatchImageResult(
           controller,
           requestId: requestId,
@@ -73,8 +94,21 @@ class NativeChatMediaService {
         throw const _NativeChatMediaException('view_unavailable');
       }
 
+      stage = 'native_picker';
+      _trackFlow(
+        flow: 'image',
+        stage: stage,
+        outcome: 'source_selected',
+        source: selectedSource,
+      );
       final selected = await _pickImage(context, source);
       if (selected == null) {
+        _trackFlow(
+          flow: 'image',
+          stage: stage,
+          outcome: 'cancelled',
+          source: selectedSource,
+        );
         await _dispatchImageResult(
           controller,
           requestId: requestId,
@@ -83,6 +117,7 @@ class NativeChatMediaService {
         return;
       }
 
+      stage = 'image_processing';
       final bytes = await _cropImageToSquareJpeg(selected);
       await _dispatchImageResult(
         controller,
@@ -97,16 +132,32 @@ class NativeChatMediaService {
           'height': _imageOutputSize,
         },
       );
+      _trackFlow(
+        flow: 'image',
+        stage: 'complete',
+        outcome: 'success',
+        source: selectedSource,
+        selectedCount: 1,
+      );
     } catch (error, stackTrace) {
       debugPrint('[Image] native picker failed: $error');
       debugPrintStack(stackTrace: stackTrace);
+      final errorCode = error is _NativeChatMediaException
+          ? error.code
+          : 'native_image_failed';
+      _trackFlow(
+        flow: 'image',
+        stage: stage,
+        outcome: 'error',
+        source: selectedSource,
+        errorCode: errorCode,
+        error: error,
+      );
       await _dispatchImageResult(
         controller,
         requestId: requestId,
         status: 'error',
-        errorCode: error is _NativeChatMediaException
-            ? error.code
-            : 'native_image_failed',
+        errorCode: errorCode,
       );
     } finally {
       _isPicking = false;
@@ -121,6 +172,12 @@ class NativeChatMediaService {
     required int maxFiles,
   }) async {
     if (!context.mounted) {
+      _trackFlow(
+        flow: 'chat',
+        stage: 'request',
+        outcome: 'error',
+        errorCode: 'view_unavailable',
+      );
       await _dispatchResult(
         controller,
         requestId: requestId,
@@ -131,6 +188,12 @@ class NativeChatMediaService {
     }
 
     if (_isPicking) {
+      _trackFlow(
+        flow: 'chat',
+        stage: 'request',
+        outcome: 'error',
+        errorCode: 'picker_busy',
+      );
       await _dispatchResult(
         controller,
         requestId: requestId,
@@ -143,12 +206,33 @@ class NativeChatMediaService {
     _isPicking = true;
     final uploadedKeys = <String>[];
     final temporaryPaths = <String>[];
+    var stage = 'source_sheet';
+    _ChatMediaSource? selectedSource;
+    _trackFlow(flow: 'chat', stage: 'request', outcome: 'started');
     try {
       final files = await _pickMedia(
         context,
         maxFiles.clamp(1, _maxFiles),
+        onStageChanged: (nextStage, source) {
+          stage = nextStage;
+          selectedSource = source;
+          if (source != null) {
+            _trackFlow(
+              flow: 'chat',
+              stage: stage,
+              outcome: 'source_selected',
+              source: source,
+            );
+          }
+        },
       );
       if (files.isEmpty) {
+        _trackFlow(
+          flow: 'chat',
+          stage: stage,
+          outcome: 'cancelled',
+          source: selectedSource,
+        );
         await _dispatchResult(
           controller,
           requestId: requestId,
@@ -157,13 +241,22 @@ class NativeChatMediaService {
         return;
       }
 
+      _trackFlow(
+        flow: 'chat',
+        stage: 'native_picker',
+        outcome: 'files_selected',
+        source: selectedSource,
+        selectedCount: files.length,
+      );
       final uploadedMedia = <Map<String, dynamic>>[];
       for (final source in files.take(maxFiles.clamp(1, _maxFiles))) {
+        stage = 'media_processing';
         final prepared = await _prepareMedia(source, temporaryPaths);
         if (prepared.size <= 0 || prepared.size > _maxFileBytes) {
           throw const _NativeChatMediaException('file_too_large');
         }
 
+        stage = 'presign_request';
         final presigned = await _postJsonInPage(
           controller,
           endpoint: '/api/live-sessions/$sessionId/messages/media/presigned',
@@ -185,6 +278,7 @@ class NativeChatMediaService {
           throw const _NativeChatMediaException('invalid_upload_url');
         }
 
+        stage = 'upload';
         final response = await _uploadClient.putUri<void>(
           uploadUri,
           data: prepared.file.openRead(),
@@ -201,6 +295,7 @@ class NativeChatMediaService {
         }
         uploadedKeys.add(key);
 
+        stage = 'upload_confirm';
         final confirmed = await _postJsonInPage(
           controller,
           endpoint: '/api/live-sessions/$sessionId/messages/media/upload',
@@ -222,6 +317,13 @@ class NativeChatMediaService {
         status: 'success',
         media: uploadedMedia,
       );
+      _trackFlow(
+        flow: 'chat',
+        stage: 'complete',
+        outcome: 'success',
+        source: selectedSource,
+        selectedCount: uploadedMedia.length,
+      );
     } catch (error, stackTrace) {
       debugPrint('[Chat media] native picker/upload failed: $error');
       debugPrintStack(stackTrace: stackTrace);
@@ -230,13 +332,22 @@ class NativeChatMediaService {
           await _deleteUploadedMedia(controller, sessionId, key);
         } catch (_) {}
       }
+      final errorCode = error is _NativeChatMediaException
+          ? error.code
+          : 'native_media_failed';
+      _trackFlow(
+        flow: 'chat',
+        stage: stage,
+        outcome: 'error',
+        source: selectedSource,
+        errorCode: errorCode,
+        error: error,
+      );
       await _dispatchResult(
         controller,
         requestId: requestId,
         status: 'error',
-        errorCode: error is _NativeChatMediaException
-            ? error.code
-            : 'native_media_failed',
+        errorCode: errorCode,
       );
     } finally {
       for (final path in temporaryPaths) {
@@ -344,7 +455,13 @@ class NativeChatMediaService {
     ''',
       );
 
-  Future<List<XFile>> _pickMedia(BuildContext context, int maxFiles) async {
+  Future<List<XFile>> _pickMedia(
+    BuildContext context,
+    int maxFiles, {
+    required void Function(String stage, _ChatMediaSource? source)
+        onStageChanged,
+  }) async {
+    onStageChanged('source_sheet', null);
     final source = await showModalBottomSheet<_ChatMediaSource>(
       context: context,
       useRootNavigator: true,
@@ -356,6 +473,9 @@ class NativeChatMediaService {
     );
     if (!context.mounted) {
       return [];
+    }
+    if (source != null) {
+      onStageChanged('native_picker', source);
     }
 
     switch (source) {
@@ -377,6 +497,61 @@ class NativeChatMediaService {
       case null:
         return [];
     }
+  }
+
+  /// Sends diagnostic-only data. Never include a filename, local path,
+  /// request ID, session ID, or media metadata in this event.
+  void _trackFlow({
+    required String flow,
+    required String stage,
+    required String outcome,
+    _ChatMediaSource? source,
+    int? selectedCount,
+    String? errorCode,
+    Object? error,
+  }) {
+    final parameters = <String, Object>{
+      'flow': flow,
+      'stage': stage,
+      'outcome': outcome,
+      'platform': Platform.isIOS ? 'ios' : 'android',
+      if (source != null) 'source': source.name,
+      if (selectedCount != null) 'selected_count': selectedCount,
+      if (errorCode != null) 'error_code': errorCode,
+      ..._errorAnalyticsParameters(error),
+    };
+    unawaited(_analytics.logEvent(
+      name: 'native_media_flow',
+      parameters: parameters,
+    ));
+  }
+
+  Map<String, Object> _errorAnalyticsParameters(Object? error) {
+    if (error is PlatformException) {
+      return {
+        'exception_type': 'platform_exception',
+        'native_error_code': _analyticsValue(error.code),
+      };
+    }
+    if (error is DioException) {
+      return {'exception_type': 'dio_${error.type.name}'};
+    }
+    if (error is FileSystemException) {
+      return {'exception_type': 'file_system'};
+    }
+    if (error is FormatException) {
+      return {'exception_type': 'format'};
+    }
+    if (error != null) {
+      return {'exception_type': _analyticsValue(error.runtimeType.toString())};
+    }
+    return const {};
+  }
+
+  String _analyticsValue(String value) {
+    final normalized =
+        value.toLowerCase().replaceAll(RegExp(r'[^a-z0-9_]'), '_');
+    return normalized.length <= 40 ? normalized : normalized.substring(0, 40);
   }
 
   Future<List<XFile>> _captureWithCustomCamera(
