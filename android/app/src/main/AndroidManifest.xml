@@ -1,5 +1,9 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android" xmlns:tools="http://schemas.android.com/tools">
     <uses-permission android:name="com.google.android.gms.permission.AD_ID" tools:node="remove" />
+    <!-- Video compression runs only while the chat screen is active. The
+         compressor's optional background service is not used by this app. -->
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE" tools:node="remove" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_DATA_SYNC" tools:node="remove" />
     <application
         android:label="@string/app_name"
         android:name="${applicationName}"
@@ -45,6 +49,12 @@
         <meta-data
             android:name="google_analytics_adid_collection_enabled"
             android:value="false" />
+        <service
+            android:name="com.gurfdev.light_compressor_v2.CompressionForegroundService"
+            tools:node="remove" />
+        <receiver
+            android:name="com.gurfdev.light_compressor_v2.CompressionCancelReceiver"
+            tools:node="remove" />
     </application>
     <!-- Required to query activities that can process text, see:
          https://developer.android.com/training/package-visibility and

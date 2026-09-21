@@ -1,7 +1,7 @@
 # default variables (can be overridden when calling make)
 FLAVOR ?= dev
 ENVIRONMENT ?= dev
-RUN_MODE ?= release
+RUN_MODE ?= debug
 
 # Run application (release mode by default so iOS can launch without a debugger)
 run:
