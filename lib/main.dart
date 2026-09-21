@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter/services.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 import 'package:provider/provider.dart';
@@ -108,10 +109,16 @@ class _MyAppState extends State<MyApp> {
           final locale = Localizations.maybeLocaleOf(context);
           return getLocalizedAppName(locale?.languageCode);
         },
-        // Support Korean and English locales
+        // Provides framework strings and semantics for Material, Cupertino,
+        // and general widgets in every supported locale below.
+        localizationsDelegates: const [
+          GlobalMaterialLocalizations.delegate,
+          GlobalCupertinoLocalizations.delegate,
+          GlobalWidgetsLocalizations.delegate,
+        ],
         supportedLocales: const [
-          Locale('en', ''), // English
-          Locale('ko', ''), // Korean
+          Locale('en'),
+          Locale('ko'),
         ],
         // Handle locale resolution
         localeResolutionCallback: (locale, supportedLocales) {
