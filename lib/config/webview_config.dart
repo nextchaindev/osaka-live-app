@@ -34,6 +34,8 @@ class WebViewConfig {
       allowFileAccess: false,
       supportMultipleWindows: Platform.isIOS,
       allowsInlineMediaPlayback: true,
+      // Hide the previous/next/Done toolbar above the system keyboard.
+      disableInputAccessoryView: true,
     );
   }
 }
