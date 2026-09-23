@@ -413,6 +413,19 @@ class _MyHomePageState extends State<MyHomePage>
   }
 
   @override
+  void didChangeMetrics() {
+    if (!mounted) {
+      return;
+    }
+
+    final view = View.of(context);
+    final keyboardHeight = view.viewInsets.bottom / view.devicePixelRatio;
+    unawaited(
+      context.read<WebViewProvider>().sendKeyboardHeight(keyboardHeight),
+    );
+  }
+
+  @override
   Widget build(BuildContext context) {
     SystemChrome.setSystemUIOverlayStyle(SystemUiOverlayStyle(
       statusBarColor: Theme.of(context).cardColor,

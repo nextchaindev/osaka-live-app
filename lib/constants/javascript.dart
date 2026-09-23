@@ -135,6 +135,27 @@ String pushLocationPermission({
   """;
 }
 
+String pushKeyboardHeight({required double keyboardHeight}) {
+  final payload = <String, dynamic>{
+    'keyboardHeight': keyboardHeight,
+    'isVisible': keyboardHeight > 0,
+  };
+
+  return """
+        (function() {
+          try {
+            var payload = ${jsonEncode(payload)};
+            window.__osakaLiveKeyboardHeightLast = payload;
+            window.dispatchEvent(new CustomEvent(
+              'osaka-live-keyboard-height',
+              { detail: payload },
+            ));
+          } catch (e) {
+          }
+        })();
+      """;
+}
+
 String pushCameraResult({
   required String status,
   String? filePath,

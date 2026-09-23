@@ -27,6 +27,9 @@ class WebViewProvider extends ChangeNotifier {
   bool _isWebViewReady = false;
   bool _isDisposed = false;
   bool _chatKeyboardOverlayEnabled = false;
+  double _latestKeyboardHeight = 0;
+  double? _lastSentKeyboardHeight;
+  bool _isSendingKeyboardHeight = false;
   Map<String, dynamic>? _latestLocationPermissionPayload;
 
   static const Duration _livePositionThrottleDuration =
@@ -49,6 +52,7 @@ class WebViewProvider extends ChangeNotifier {
   void setController(InAppWebViewController? controller) {
     if (!identical(_controller, controller)) {
       _chatKeyboardOverlayEnabled = false;
+      _lastSentKeyboardHeight = null;
     }
     _controller = controller;
     notifyListeners();
@@ -70,8 +74,10 @@ class WebViewProvider extends ChangeNotifier {
       unawaited(_flushPendingDeepLink());
       _queueLatestLivePosition();
       _sendLatestLocationPermission();
+      _sendLatestKeyboardHeight();
     } else {
       setChatKeyboardOverlayEnabled(false);
+      _lastSentKeyboardHeight = null;
       _lastLivePositionJson = null;
       _lastLivePositionSentAt = null;
     }
@@ -279,6 +285,43 @@ class WebViewProvider extends ChangeNotifier {
     );
   }
 
+  /// Sends the system keyboard height in Flutter logical pixels to the WebView.
+  Future<void> sendKeyboardHeight(double keyboardHeight) async {
+    if (_latestKeyboardHeight == keyboardHeight) {
+      return;
+    }
+    _latestKeyboardHeight = keyboardHeight;
+    await _sendLatestKeyboardHeight();
+  }
+
+  Future<void> _sendLatestKeyboardHeight() async {
+    if (_isSendingKeyboardHeight || !_isWebViewReady || _controller == null) {
+      return;
+    }
+
+    _isSendingKeyboardHeight = true;
+    try {
+      while (_isWebViewReady && _controller != null) {
+        final keyboardHeight = _latestKeyboardHeight;
+        if (_lastSentKeyboardHeight == keyboardHeight) {
+          return;
+        }
+
+        await _controller!.evaluateJavascript(
+          source: pushKeyboardHeight(keyboardHeight: keyboardHeight),
+        );
+        _lastSentKeyboardHeight = keyboardHeight;
+      }
+    } finally {
+      _isSendingKeyboardHeight = false;
+      if (_isWebViewReady &&
+          _controller != null &&
+          _lastSentKeyboardHeight != _latestKeyboardHeight) {
+        unawaited(_sendLatestKeyboardHeight());
+      }
+    }
+  }
+
   Future<void> sendCameraResult({
     required String status,
     String? filePath,
@@ -427,6 +470,9 @@ class WebViewProvider extends ChangeNotifier {
     _lastLivePositionSentAt = null;
     _isFlushingLivePosition = false;
     _latestLocationPermissionPayload = null;
+    _latestKeyboardHeight = 0;
+    _lastSentKeyboardHeight = null;
+    _isSendingKeyboardHeight = false;
     _isWebViewReady = false;
     _controller = null;
     _progress = 0.0;
