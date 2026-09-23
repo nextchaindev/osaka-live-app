@@ -54,6 +54,7 @@ class _WebViewContainerState extends State<WebViewContainer>
   final InAppWebViewSettings _options = WebViewConfig.getDefaultSettings();
   final WebViewHelper _webViewHelper = WebViewHelper();
   final AuthRepository _authRepository = AuthRepository();
+  late final WebViewProvider _webViewProvider;
 
   InAppWebViewController? _webViewController;
   BuildContext? _dialogContext;
@@ -61,6 +62,7 @@ class _WebViewContainerState extends State<WebViewContainer>
   @override
   void initState() {
     super.initState();
+    _webViewProvider = context.read<WebViewProvider>();
 
     _isValidURL = validateUrl(_initialUrl);
     _initPullToRequest();
@@ -96,14 +98,25 @@ class _WebViewContainerState extends State<WebViewContainer>
 
   @override
   void dispose() {
+    final controller = _webViewController;
+    if (controller != null) {
+      // Notify after the widget tree finishes disposing to avoid rebuilding it.
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        _webViewProvider.clearControllerIfCurrent(controller);
+      });
+    }
     _webViewController = null;
     super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
+    final chatKeyboardOverlayEnabled = context.select<WebViewProvider, bool>(
+      (provider) => provider.chatKeyboardOverlayEnabled,
+    );
     return Scaffold(
         key: _scaffoldKey,
+        resizeToAvoidBottomInset: !chatKeyboardOverlayEnabled,
         body: Column(
           children: [
             Expanded(
@@ -345,6 +358,7 @@ class _WebViewContainerState extends State<WebViewContainer>
                                   onUpdateVisitedHistory(
                                       url: url,
                                       onUpdateUrl: (newUrl) {
+                                        _webViewProvider.setCurrentUrl(newUrl);
                                         setState(() {
                                           _currentUrl = newUrl;
                                         });

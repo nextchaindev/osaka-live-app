@@ -450,70 +450,77 @@ class _MyHomePageState extends State<MyHomePage>
       child: GestureDetector(
         onTap: () =>
             context.read<NavigationBarProvider>().animationController.reverse(),
-        child: Container(
+        child: Consumer<WebViewProvider>(
+          builder: (context, webviewProvider, child) => Container(
             color: Colors.white,
-            child: Scaffold(body: Consumer<WebViewProvider>(
-              builder: (context, webviewProvider, child) {
-                // Update splash visibility when progress changes
-                bool isLoaded = _isAppInitialized &&
-                    webviewProvider.progress >= 1.0 &&
-                    !_isUpdateRequired;
+            child: Scaffold(
+              resizeToAvoidBottomInset:
+                  !webviewProvider.chatKeyboardOverlayEnabled,
+              body: Consumer<WebViewProvider>(
+                builder: (context, webviewProvider, child) {
+                  // Update splash visibility when progress changes
+                  bool isLoaded = _isAppInitialized &&
+                      webviewProvider.progress >= 1.0 &&
+                      !_isUpdateRequired;
 
-                // Handle delay before hiding splash
-                if (isLoaded && !_shouldHideSplash) {
-                  _splashHideTimer?.cancel();
-                  _splashHideTimer =
-                      Timer(const Duration(milliseconds: 500), () {
-                    if (mounted) {
-                      setState(() {
-                        _shouldHideSplash = true;
-                      });
-                    }
-                  });
-                } else if (!isLoaded && _shouldHideSplash) {
-                  // Reset flag when loading again
-                  _splashHideTimer?.cancel();
-                  _shouldHideSplash = false;
-                }
-                final disableTopSafeArea = routeNoSafeArea.any((route) =>
-                        webviewProvider.currentUrl.contains(route)) ||
-                    WebViewHelper.isWebViewRoot(
-                      webviewProvider.currentUrl,
-                      rootUrl: EnvConfig.instance.webviewUrl,
-                    );
-                final disableBottomSafeArea = routeNoBottomSafeArea
-                    .any((route) => webviewProvider.currentUrl.contains(route));
-                return Stack(
-                  children: [
-                    Opacity(
-                      opacity: isLoaded ? 1.0 : 0.0,
-                      child: Container(
-                        color: Colors.white,
-                        child: SafeArea(
-                          top: !disableTopSafeArea,
-                          bottom: false,
-                          child: Navigator(
-                            key: _navigatorKeys[0],
-                            onGenerateRoute: (routeSettings) {
-                              return MaterialPageRoute(
-                                  builder: (_) => WebViewContainer());
-                            },
+                  // Handle delay before hiding splash
+                  if (isLoaded && !_shouldHideSplash) {
+                    _splashHideTimer?.cancel();
+                    _splashHideTimer =
+                        Timer(const Duration(milliseconds: 500), () {
+                      if (mounted) {
+                        setState(() {
+                          _shouldHideSplash = true;
+                        });
+                      }
+                    });
+                  } else if (!isLoaded && _shouldHideSplash) {
+                    // Reset flag when loading again
+                    _splashHideTimer?.cancel();
+                    _shouldHideSplash = false;
+                  }
+                  final disableTopSafeArea = routeNoSafeArea.any((route) =>
+                          webviewProvider.currentUrl.contains(route)) ||
+                      WebViewHelper.isWebViewRoot(
+                        webviewProvider.currentUrl,
+                        rootUrl: EnvConfig.instance.webviewUrl,
+                      );
+                  final disableBottomSafeArea = routeNoBottomSafeArea.any(
+                      (route) => webviewProvider.currentUrl.contains(route));
+                  return Stack(
+                    children: [
+                      Opacity(
+                        opacity: isLoaded ? 1.0 : 0.0,
+                        child: Container(
+                          color: Colors.white,
+                          child: SafeArea(
+                            top: !disableTopSafeArea,
+                            bottom: false,
+                            child: Navigator(
+                              key: _navigatorKeys[0],
+                              onGenerateRoute: (routeSettings) {
+                                return MaterialPageRoute(
+                                    builder: (_) => WebViewContainer());
+                              },
+                            ),
                           ),
                         ),
                       ),
-                    ),
-                    AnimatedOpacity(
-                      opacity: (!isLoaded || !_shouldHideSplash) ? 1.0 : 0.0,
-                      duration: const Duration(milliseconds: 300),
-                      child: (!isLoaded || !_shouldHideSplash)
-                          ? SplashOverlay()
-                          : SizedBox.shrink(),
-                    ),
-                    // Splash screen overlay that hides when webview loads
-                  ],
-                );
-              },
-            ))),
+                      AnimatedOpacity(
+                        opacity: (!isLoaded || !_shouldHideSplash) ? 1.0 : 0.0,
+                        duration: const Duration(milliseconds: 300),
+                        child: (!isLoaded || !_shouldHideSplash)
+                            ? SplashOverlay()
+                            : SizedBox.shrink(),
+                      ),
+                      // Splash screen overlay that hides when webview loads
+                    ],
+                  );
+                },
+              ),
+            ),
+          ),
+        ),
       ),
     );
   }

@@ -235,6 +235,17 @@ class JsCommunicationService {
               }
 
               if (decoded is Map<String, dynamic> &&
+                  decoded['type'] == 'chat_keyboard_overlay') {
+                final enabled = decoded['enabled'];
+                if (enabled is bool && context.mounted) {
+                  context
+                      .read<WebViewProvider>()
+                      .setChatKeyboardOverlayEnabled(enabled);
+                }
+                return;
+              }
+
+              if (decoded is Map<String, dynamic> &&
                   decoded['type'] == 'pick_chat_media') {
                 final requestId = decoded['requestId']?.toString() ?? '';
                 final sessionId = decoded['sessionId']?.toString() ?? '';

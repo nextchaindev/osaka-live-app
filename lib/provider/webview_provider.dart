@@ -25,12 +25,21 @@ class WebViewProvider extends ChangeNotifier {
   bool _isOpeningDeepLink = false;
   bool _isFlushingLivePosition = false;
   bool _isWebViewReady = false;
+  bool _isDisposed = false;
+  bool _chatKeyboardOverlayEnabled = false;
   Map<String, dynamic>? _latestLocationPermissionPayload;
 
   static const Duration _livePositionThrottleDuration =
       Duration(milliseconds: 500);
 
   InAppWebViewController? get controller => _controller;
+  bool get chatKeyboardOverlayEnabled => _chatKeyboardOverlayEnabled;
+
+  void setChatKeyboardOverlayEnabled(bool enabled) {
+    if (_chatKeyboardOverlayEnabled == enabled) return;
+    _chatKeyboardOverlayEnabled = enabled;
+    notifyListeners();
+  }
 
   void setPendingDeepLink(Uri? uri) {
     _pendingDeepLink = uri;
@@ -38,10 +47,21 @@ class WebViewProvider extends ChangeNotifier {
   }
 
   void setController(InAppWebViewController? controller) {
+    if (!identical(_controller, controller)) {
+      _chatKeyboardOverlayEnabled = false;
+    }
     _controller = controller;
     notifyListeners();
     unawaited(_flushPendingDeepLink());
     _queueLatestLivePosition();
+  }
+
+  void clearControllerIfCurrent(InAppWebViewController controller) {
+    if (_isDisposed || !identical(_controller, controller)) return;
+    _controller = null;
+    _isWebViewReady = false;
+    _chatKeyboardOverlayEnabled = false;
+    notifyListeners();
   }
 
   void setWebViewReady(bool isReady) {
@@ -51,6 +71,7 @@ class WebViewProvider extends ChangeNotifier {
       _queueLatestLivePosition();
       _sendLatestLocationPermission();
     } else {
+      setChatKeyboardOverlayEnabled(false);
       _lastLivePositionJson = null;
       _lastLivePositionSentAt = null;
     }
@@ -389,6 +410,8 @@ class WebViewProvider extends ChangeNotifier {
   void setCurrentUrl(String url) {
     if (_currentUrl != url) {
       _currentUrl = url;
+      // A new SPA route must opt in again; the old chat composer may be gone.
+      _chatKeyboardOverlayEnabled = false;
       notifyListeners();
     }
   }
@@ -409,11 +432,13 @@ class WebViewProvider extends ChangeNotifier {
     _progress = 0.0;
     _hasInitialLoadCompleted = false;
     _currentUrl = "";
+    _chatKeyboardOverlayEnabled = false;
     notifyListeners();
   }
 
   @override
   void dispose() {
+    _isDisposed = true;
     _livePositionThrottleTimer?.cancel();
     super.dispose();
   }
