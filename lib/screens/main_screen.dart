@@ -467,8 +467,7 @@ class _MyHomePageState extends State<MyHomePage>
           builder: (context, webviewProvider, child) => Container(
             color: Colors.white,
             child: Scaffold(
-              resizeToAvoidBottomInset:
-                  !webviewProvider.chatKeyboardOverlayEnabled,
+              resizeToAvoidBottomInset: !webviewProvider.webViewScrollLocked,
               body: Consumer<WebViewProvider>(
                 builder: (context, webviewProvider, child) {
                   // Update splash visibility when progress changes

@@ -235,12 +235,14 @@ class JsCommunicationService {
               }
 
               if (decoded is Map<String, dynamic> &&
-                  decoded['type'] == 'chat_keyboard_overlay') {
-                final enabled = decoded['enabled'];
-                if (enabled is bool && context.mounted) {
+                  decoded['type'] == 'webview_scroll_lock') {
+                final locked = decoded['locked'];
+                if (locked is bool && context.mounted) {
                   await context
                       .read<WebViewProvider>()
-                      .setChatKeyboardOverlayEnabled(enabled);
+                      .setWebViewScrollLocked(locked);
+                } else {
+                  debugPrint('Ignored invalid WebView scroll lock request');
                 }
                 return;
               }

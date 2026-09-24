@@ -32,7 +32,7 @@ class WebViewProvider extends ChangeNotifier {
   bool _isFlushingLivePosition = false;
   bool _isWebViewReady = false;
   bool _isDisposed = false;
-  bool _chatKeyboardOverlayEnabled = false;
+  bool _webViewScrollLocked = false;
   double _latestKeyboardHeight = 0;
   double? _lastSentKeyboardHeight;
   bool _isSendingKeyboardHeight = false;
@@ -42,13 +42,13 @@ class WebViewProvider extends ChangeNotifier {
       Duration(milliseconds: 500);
 
   InAppWebViewController? get controller => _controller;
-  bool get chatKeyboardOverlayEnabled => _chatKeyboardOverlayEnabled;
+  bool get webViewScrollLocked => _webViewScrollLocked;
 
-  Future<void> setChatKeyboardOverlayEnabled(bool enabled) async {
-    if (_chatKeyboardOverlayEnabled == enabled) return;
-    _chatKeyboardOverlayEnabled = enabled;
+  Future<void> setWebViewScrollLocked(bool locked) async {
+    if (_webViewScrollLocked == locked) return;
+    _webViewScrollLocked = locked;
     notifyListeners();
-    await _setNativeWebViewScrollLock(enabled);
+    await _setNativeWebViewScrollLock(locked);
   }
 
   Future<void> _setNativeWebViewScrollLock(bool locked) async {
@@ -56,19 +56,19 @@ class WebViewProvider extends ChangeNotifier {
 
     try {
       await _webViewScrollLockChannel.invokeMethod<void>(
-        'setKeyboardOverlayScrollLocked',
+        'setWebViewScrollLocked',
         {'locked': locked},
       );
       debugPrint(
-        '[OsakaLive][keyboard][flutter] native WebView scroll lock: $locked',
+        '[OsakaLive][webview][scroll-lock] native lock: $locked',
       );
     } on PlatformException catch (error) {
       debugPrint(
-        '[OsakaLive][keyboard][flutter] failed to set native WebView scroll lock: $error',
+        '[OsakaLive][webview][scroll-lock] failed to set native lock: $error',
       );
     } on MissingPluginException catch (error) {
       debugPrint(
-        '[OsakaLive][keyboard][flutter] native WebView scroll lock unavailable: $error',
+        '[OsakaLive][webview][scroll-lock] native lock unavailable: $error',
       );
     }
   }
@@ -80,10 +80,10 @@ class WebViewProvider extends ChangeNotifier {
 
   void setController(InAppWebViewController? controller) {
     if (!identical(_controller, controller)) {
-      if (_chatKeyboardOverlayEnabled) {
+      if (_webViewScrollLocked) {
         unawaited(_setNativeWebViewScrollLock(false));
       }
-      _chatKeyboardOverlayEnabled = false;
+      _webViewScrollLocked = false;
       _lastSentKeyboardHeight = null;
     }
     _controller = controller;
@@ -96,10 +96,10 @@ class WebViewProvider extends ChangeNotifier {
     if (_isDisposed || !identical(_controller, controller)) return;
     _controller = null;
     _isWebViewReady = false;
-    if (_chatKeyboardOverlayEnabled) {
+    if (_webViewScrollLocked) {
       unawaited(_setNativeWebViewScrollLock(false));
     }
-    _chatKeyboardOverlayEnabled = false;
+    _webViewScrollLocked = false;
     notifyListeners();
   }
 
@@ -111,7 +111,7 @@ class WebViewProvider extends ChangeNotifier {
       _sendLatestLocationPermission();
       _sendLatestKeyboardHeight();
     } else {
-      unawaited(setChatKeyboardOverlayEnabled(false));
+      unawaited(setWebViewScrollLocked(false));
       _lastSentKeyboardHeight = null;
       _lastLivePositionJson = null;
       _lastLivePositionSentAt = null;
@@ -488,8 +488,6 @@ class WebViewProvider extends ChangeNotifier {
   void setCurrentUrl(String url) {
     if (_currentUrl != url) {
       _currentUrl = url;
-      // A new SPA route must opt in again; the old chat composer may be gone.
-      unawaited(setChatKeyboardOverlayEnabled(false));
       notifyListeners();
     }
   }
@@ -497,7 +495,7 @@ class WebViewProvider extends ChangeNotifier {
   // ==================== Reset All ====================
   /// Reset all WebView state (useful when navigating away or restarting)
   void resetAll() {
-    unawaited(setChatKeyboardOverlayEnabled(false));
+    unawaited(setWebViewScrollLocked(false));
     _livePositionThrottleTimer?.cancel();
     _livePositionThrottleTimer = null;
     _latestLivePositionPayload = null;
@@ -519,8 +517,8 @@ class WebViewProvider extends ChangeNotifier {
 
   @override
   void dispose() {
-    if (_chatKeyboardOverlayEnabled) {
-      _chatKeyboardOverlayEnabled = false;
+    if (_webViewScrollLocked) {
+      _webViewScrollLocked = false;
       unawaited(_setNativeWebViewScrollLock(false));
     }
     _isDisposed = true;

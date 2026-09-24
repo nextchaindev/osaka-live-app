@@ -111,12 +111,12 @@ class _WebViewContainerState extends State<WebViewContainer>
 
   @override
   Widget build(BuildContext context) {
-    final chatKeyboardOverlayEnabled = context.select<WebViewProvider, bool>(
-      (provider) => provider.chatKeyboardOverlayEnabled,
+    final webViewScrollLocked = context.select<WebViewProvider, bool>(
+      (provider) => provider.webViewScrollLocked,
     );
     return Scaffold(
         key: _scaffoldKey,
-        resizeToAvoidBottomInset: !chatKeyboardOverlayEnabled,
+        resizeToAvoidBottomInset: !webViewScrollLocked,
         body: Column(
           children: [
             Expanded(
