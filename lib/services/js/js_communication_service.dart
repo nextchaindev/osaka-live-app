@@ -238,7 +238,7 @@ class JsCommunicationService {
                   decoded['type'] == 'chat_keyboard_overlay') {
                 final enabled = decoded['enabled'];
                 if (enabled is bool && context.mounted) {
-                  context
+                  await context
                       .read<WebViewProvider>()
                       .setChatKeyboardOverlayEnabled(enabled);
                 }
