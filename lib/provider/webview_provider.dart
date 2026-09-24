@@ -36,6 +36,9 @@ class WebViewProvider extends ChangeNotifier {
   double _latestKeyboardHeight = 0;
   double? _lastSentKeyboardHeight;
   bool _isSendingKeyboardHeight = false;
+  String? _latestAppLifecycleState;
+  int? _latestAppLifecycleUpdatedAt;
+  int _appLifecycleSequence = 0;
   Map<String, dynamic>? _latestLocationPermissionPayload;
 
   static const Duration _livePositionThrottleDuration =
@@ -110,6 +113,7 @@ class WebViewProvider extends ChangeNotifier {
       _queueLatestLivePosition();
       _sendLatestLocationPermission();
       _sendLatestKeyboardHeight();
+      unawaited(_sendLatestAppLifecycleState(_appLifecycleSequence));
     } else {
       unawaited(setWebViewScrollLocked(false));
       _lastSentKeyboardHeight = null;
@@ -357,6 +361,52 @@ class WebViewProvider extends ChangeNotifier {
     }
   }
 
+  Future<void> sendAppLifecycleState(String state) async {
+    final sequence = ++_appLifecycleSequence;
+    _latestAppLifecycleState = state;
+    _latestAppLifecycleUpdatedAt = DateTime.now().millisecondsSinceEpoch;
+
+    unawaited(_sendLatestAppLifecycleState(sequence));
+    if (state != AppLifecycleState.resumed.name) return;
+
+    for (final delay in const [
+      Duration(milliseconds: 250),
+      Duration(seconds: 1),
+    ]) {
+      unawaited(
+        Future<void>.delayed(delay).then((_) async {
+          await _sendLatestAppLifecycleState(sequence);
+        }),
+      );
+    }
+  }
+
+  Future<void> _sendLatestAppLifecycleState(int sequence) async {
+    if (_isDisposed || sequence != _appLifecycleSequence) return;
+    final controller = _controller;
+    final state = _latestAppLifecycleState;
+    final updatedAt = _latestAppLifecycleUpdatedAt;
+    if (!_isWebViewReady ||
+        controller == null ||
+        state == null ||
+        updatedAt == null) {
+      return;
+    }
+
+    try {
+      await controller.evaluateJavascript(
+        source: pushAppLifecycleState(state: state, updatedAt: updatedAt),
+      );
+      debugPrint(
+        '[OsakaLive][lifecycle][flutter] sent $state to WebView ($updatedAt)',
+      );
+    } catch (error) {
+      debugPrint(
+        '[OsakaLive][lifecycle][flutter] failed to send $state: $error',
+      );
+    }
+  }
+
   Future<void> sendCameraResult({
     required String status,
     String? filePath,
@@ -517,6 +567,7 @@ class WebViewProvider extends ChangeNotifier {
 
   @override
   void dispose() {
+    _appLifecycleSequence++;
     if (_webViewScrollLocked) {
       _webViewScrollLocked = false;
       unawaited(_setNativeWebViewScrollLock(false));

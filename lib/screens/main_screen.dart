@@ -400,6 +400,12 @@ class _MyHomePageState extends State<MyHomePage>
 
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (mounted) {
+      unawaited(
+        context.read<WebViewProvider>().sendAppLifecycleState(state.name),
+      );
+    }
+
     if (state == AppLifecycleState.resumed && mounted) {
       unawaited(_refreshLocationPermissionAndSync());
       return;

@@ -156,6 +156,30 @@ String pushKeyboardHeight({required double keyboardHeight}) {
       """;
 }
 
+String pushAppLifecycleState({
+  required String state,
+  required int updatedAt,
+}) {
+  final payload = <String, dynamic>{
+    'state': state,
+    'updatedAt': updatedAt,
+  };
+
+  return """
+        (function() {
+          try {
+            var payload = ${jsonEncode(payload)};
+            window.__osakaLiveAppLifecycleLast = payload;
+            window.dispatchEvent(new CustomEvent(
+              'osaka-live-app-lifecycle',
+              { detail: payload },
+            ));
+          } catch (e) {
+          }
+        })();
+      """;
+}
+
 String pushCameraResult({
   required String status,
   String? filePath,
