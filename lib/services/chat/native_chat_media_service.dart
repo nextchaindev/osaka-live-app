@@ -26,6 +26,7 @@ class NativeChatMediaService {
   static const int _maxFileBytes = 25 * 1024 * 1024;
   static const int _targetVideoSizeMb = 22;
   static const String _resultEvent = 'osaka-live-chat-media-picker-result';
+  static const String _progressEvent = 'osaka-live-chat-media-picker-progress';
   static const String _imageResultEvent = 'osaka-live-image-picker-result';
   static const int _imageOutputSize = 1024;
 
@@ -241,6 +242,11 @@ class NativeChatMediaService {
         return;
       }
 
+      await _dispatchProgress(
+        controller,
+        requestId: requestId,
+        status: 'processing_started',
+      );
       _trackFlow(
         flow: 'chat',
         stage: 'native_picker',
@@ -762,6 +768,30 @@ class NativeChatMediaService {
         ));
       ''',
     );
+  }
+
+  Future<void> _dispatchProgress(
+    InAppWebViewController controller, {
+    required String requestId,
+    required String status,
+  }) async {
+    final payload = {
+      'requestId': requestId,
+      'status': status,
+    };
+    try {
+      await controller.evaluateJavascript(
+        source: '''
+          window.dispatchEvent(new CustomEvent(
+            '$_progressEvent',
+            {detail: ${jsonEncode(payload)}}
+          ));
+        ''',
+      );
+    } catch (error, stackTrace) {
+      debugPrint('[Chat media] progress dispatch failed: $error');
+      debugPrintStack(stackTrace: stackTrace);
+    }
   }
 
   String _resolveMimeType(XFile file) {

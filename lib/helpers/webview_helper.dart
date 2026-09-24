@@ -42,6 +42,17 @@ class WebViewHelper {
         uri.port == root.port;
   }
 
+  /// Returns whether [current] and [target] resolve to the same WebView route.
+  ///
+  /// Notification parameters and fragments do not identify a different page,
+  /// so callers can preserve the existing WebView state when only they differ.
+  static bool isSameWebPath(Uri current, Uri target) {
+    return current.scheme == target.scheme &&
+        current.host == target.host &&
+        current.port == target.port &&
+        _normalizePath(current.path) == _normalizePath(target.path);
+  }
+
   static String _normalizePath(String path) {
     if (path.isEmpty) {
       return '/';

@@ -148,6 +148,18 @@ class WebViewProvider extends ChangeNotifier {
 
     _isOpeningDeepLink = true;
     try {
+      final currentUrl = await controller.getUrl();
+      if (currentUrl != null &&
+          WebViewHelper.isSameWebPath(currentUrl.uriValue, target)) {
+        debugPrint(
+          '[OsakaLive][notification] already on target path: ${target.path}',
+        );
+        if (_pendingDeepLink == target) {
+          _pendingDeepLink = null;
+        }
+        return;
+      }
+
       debugPrint('[OsakaLive][notification] loading pending link: $target');
       await controller.loadUrl(
         urlRequest: URLRequest(url: WebUri.uri(target)),
