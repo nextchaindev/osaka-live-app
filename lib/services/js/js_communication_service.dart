@@ -11,6 +11,7 @@ import 'package:osaka_app/provider/webview_provider.dart';
 import 'package:osaka_app/repositories/auth_repository.dart';
 import 'package:osaka_app/screens/camera/custom_camera_screen.dart';
 import 'package:osaka_app/services/auth/social_login_service.dart';
+import 'package:osaka_app/services/chat/native_chat_media_service.dart';
 import 'package:osaka_app/services/location/location_sync_service.dart';
 import 'package:osaka_app/services/permission/permission_service.dart';
 import 'package:osaka_app/widgets/common/dialog.dart';
@@ -49,6 +50,8 @@ class JsCommunicationService {
   static Future<void> handlePostMessage({
     required InAppWebViewController controller,
     required String webViewUrl,
+    required Future<void> Function(bool enabled)
+        onLiveSessionVideoAutoPlayChanged,
     required Function({
       required String name,
       required String url,
@@ -117,8 +120,7 @@ class JsCommunicationService {
         final openSettings = await appDialog.showPermissionDialog(
           context,
           title: '카메라와 마이크 권한이 필요합니다',
-          message:
-              '라이브 영상을 촬영하려면 카메라와 마이크 권한이 필요합니다.\n\n설정에서 권한을 허용해 주세요.',
+          message: '라이브 영상을 촬영하려면 카메라와 마이크 권한이 필요합니다.\n\n설정에서 권한을 허용해 주세요.',
           icon: Icons.videocam_outlined,
         );
         if (openSettings) {
@@ -216,6 +218,79 @@ class JsCommunicationService {
               if (decoded is Map<String, dynamic> &&
                   decoded['type'] == 'social_login') {
                 await handleSocialLogin(decoded);
+                return;
+              }
+
+              if (decoded is Map<String, dynamic> &&
+                  decoded['type'] == 'live_session_video_auto_play') {
+                final enabled = decoded['enabled'];
+                if (enabled is bool) {
+                  await onLiveSessionVideoAutoPlayChanged(enabled);
+                } else {
+                  debugPrint(
+                    'Ignored invalid live session video autoplay setting',
+                  );
+                }
+                return;
+              }
+
+              if (decoded is Map<String, dynamic> &&
+                  decoded['type'] == 'webview_scroll_lock') {
+                final locked = decoded['locked'];
+                if (locked is bool && context.mounted) {
+                  await context
+                      .read<WebViewProvider>()
+                      .setWebViewScrollLocked(locked);
+                } else {
+                  debugPrint('Ignored invalid WebView scroll lock request');
+                }
+                return;
+              }
+
+              if (decoded is Map<String, dynamic> &&
+                  decoded['type'] == 'pick_chat_media') {
+                final requestId = decoded['requestId']?.toString() ?? '';
+                final sessionId = decoded['sessionId']?.toString() ?? '';
+                final maxFiles = (decoded['maxFiles'] as num?)?.toInt() ?? 1;
+                if (requestId.isEmpty || sessionId.isEmpty) {
+                  debugPrint('Ignored invalid native chat media request');
+                  return;
+                }
+                await NativeChatMediaService.instance.pickCompressAndUpload(
+                  controller: controller,
+                  context: context,
+                  requestId: requestId,
+                  sessionId: sessionId,
+                  maxFiles: maxFiles,
+                );
+                return;
+              }
+
+              if (decoded is Map<String, dynamic> &&
+                  (decoded['type'] == 'pick_image' ||
+                      decoded['type'] == 'pick_avatar')) {
+                final requestId = decoded['requestId']?.toString() ?? '';
+                if (requestId.isEmpty) {
+                  debugPrint('Ignored invalid native image request');
+                  return;
+                }
+                final purpose = decoded['type'] == 'pick_avatar' ||
+                        decoded['purpose'] == 'avatar'
+                    ? NativeImagePurpose.avatar
+                    : decoded['purpose'] == 'venue_thumbnail'
+                        ? NativeImagePurpose.venueThumbnail
+                        : null;
+                if (purpose == null) {
+                  debugPrint(
+                      'Ignored native image request with invalid purpose');
+                  return;
+                }
+                await NativeChatMediaService.instance.pickImageAndDispatch(
+                  controller: controller,
+                  context: context,
+                  requestId: requestId,
+                  purpose: purpose,
+                );
                 return;
               }
 

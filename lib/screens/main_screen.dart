@@ -4,12 +4,13 @@ import 'package:app_links/app_links.dart';
 import 'package:osaka_app/config/env_config.dart';
 import 'package:osaka_app/constants/common.dart';
 import 'package:osaka_app/config/app_remote_config.dart';
-import 'package:osaka_app/helpers/Themes.dart';
+import 'package:osaka_app/helpers/themes.dart';
 import 'package:osaka_app/helpers/icons.dart';
 import 'package:osaka_app/helpers/webview_helper.dart';
 import 'package:osaka_app/provider/webview_provider.dart';
 import 'package:osaka_app/repositories/auth_repository.dart';
 import 'package:osaka_app/services/analytics/analytics_service.dart';
+import 'package:osaka_app/services/cookies/cookies_services.dart';
 import 'package:osaka_app/services/location/location_sync_service.dart';
 import 'package:osaka_app/services/permission/permission_service.dart';
 import 'package:osaka_app/widgets/common/dialog.dart';
@@ -50,6 +51,7 @@ class _MyHomePageState extends State<MyHomePage>
   final LocationSyncService _locationSyncService = LocationSyncService();
 
   StreamSubscription<Uri>? _linkSubscription;
+  StreamSubscription<String>? _fcmTokenSubscription;
 
   // Track app initialization state locally
   bool _isAppInitialized = false;
@@ -70,6 +72,9 @@ class _MyHomePageState extends State<MyHomePage>
         AnimationController(vsync: this, duration: animationDuration);
 
     initDeepLinks();
+    _fcmTokenSubscription = FirebaseMessaging.instance.onTokenRefresh.listen(
+      (token) => unawaited(_handleFcmTokenRefresh(token)),
+    );
 
     // Reset loading provider after build phase completes
     // This ensures splash shows on initial load and hot reload
@@ -124,10 +129,29 @@ class _MyHomePageState extends State<MyHomePage>
     }
   }
 
+  Future<void> _handleFcmTokenRefresh(String token) async {
+    try {
+      await AuthRepository().setFcmToken(fcmToken: token);
+      if (!mounted) {
+        return;
+      }
+
+      await markAccessByWebview(
+        webViewUrl: EnvConfig.instance.webviewUrl,
+        cookieManager: CookieManager.instance(),
+        safeAreaTop: context.read<WebViewProvider>().safeAreaTop,
+        safeAreaBottom: context.read<WebViewProvider>().safeAreaBottom,
+        fcmToken: token,
+      );
+    } catch (e) {
+      debugPrint('FCM token refresh handling failed: $e');
+    }
+  }
+
   // Check update required when the version from Firebase Remote Config is greater than the current version
   Future<bool> checkUpdateRequired() async {
     try {
-      if (EnvConfig.instance.env != 'PROD') return false;
+      if (!EnvConfig.instance.isProd) return false;
       final packageInfo = await PackageInfo.fromPlatform();
       final currentVersion = packageInfo.version;
       final remoteVersion = RemoteConfigManager().getString(
@@ -304,16 +328,16 @@ class _MyHomePageState extends State<MyHomePage>
     AppLinks().getInitialLink().then((link) {
       print("link => $link");
       if (link != null) {
-        openAppLink(link);
+        unawaited(openAppLink(link));
       }
     });
     _linkSubscription = AppLinks().uriLinkStream.listen((uri) {
       debugPrint('onAppLink: $uri');
-      openAppLink(uri);
+      unawaited(openAppLink(uri));
     });
   }
 
-  void openAppLink(Uri uri) {
+  Future<void> openAppLink(Uri uri) async {
     // Prefer explicit query param ?url=... for custom schemes
     String url = (uri.queryParameters['url'] ?? '').trim();
 
@@ -337,11 +361,19 @@ class _MyHomePageState extends State<MyHomePage>
       return;
     }
 
+    if (!WebViewHelper.isTrustedWebUri(
+      target,
+      rootUrl: EnvConfig.instance.webviewUrl,
+    )) {
+      await launchUrl(target, mode: LaunchMode.externalApplication);
+      return;
+    }
+
     final provider = Provider.of<WebViewProvider>(context, listen: false);
     InAppWebViewController? webViewController = provider.controller;
 
     if (webViewController != null) {
-      webViewController.loadUrl(
+      await webViewController.loadUrl(
           urlRequest: URLRequest(url: WebUri.uri(target)));
     } else {
       provider.setPendingDeepLink(target);
@@ -360,6 +392,7 @@ class _MyHomePageState extends State<MyHomePage>
     onChangedAnimation.dispose();
     navigationContainerAnimationController.dispose();
     _linkSubscription?.cancel();
+    _fcmTokenSubscription?.cancel();
     _splashHideTimer?.cancel();
     _locationSyncService.stop();
     super.dispose();
@@ -367,9 +400,35 @@ class _MyHomePageState extends State<MyHomePage>
 
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (mounted) {
+      unawaited(
+        context.read<WebViewProvider>().sendAppLifecycleState(state.name),
+      );
+    }
+
     if (state == AppLifecycleState.resumed && mounted) {
       unawaited(_refreshLocationPermissionAndSync());
+      return;
     }
+
+    if (state == AppLifecycleState.inactive ||
+        state == AppLifecycleState.paused ||
+        state == AppLifecycleState.detached) {
+      unawaited(_locationSyncService.stop());
+    }
+  }
+
+  @override
+  void didChangeMetrics() {
+    if (!mounted) {
+      return;
+    }
+
+    final view = View.of(context);
+    final keyboardHeight = view.viewInsets.bottom / view.devicePixelRatio;
+    unawaited(
+      context.read<WebViewProvider>().sendKeyboardHeight(keyboardHeight),
+    );
   }
 
   @override
@@ -410,70 +469,77 @@ class _MyHomePageState extends State<MyHomePage>
       child: GestureDetector(
         onTap: () =>
             context.read<NavigationBarProvider>().animationController.reverse(),
-        child: Container(
+        child: Consumer<WebViewProvider>(
+          builder: (context, webviewProvider, child) => Container(
             color: Colors.white,
-            child: Scaffold(body: Consumer<WebViewProvider>(
-              builder: (context, webviewProvider, child) {
-                // Update splash visibility when progress changes
-                bool isLoaded = _isAppInitialized &&
-                    webviewProvider.progress >= 1.0 &&
-                    !_isUpdateRequired;
+            child: Scaffold(
+              resizeToAvoidBottomInset: !webviewProvider.webViewScrollLocked,
+              body: Consumer<WebViewProvider>(
+                builder: (context, webviewProvider, child) {
+                  // Update splash visibility when progress changes
+                  bool isLoaded = _isAppInitialized &&
+                      webviewProvider.progress >= 1.0 &&
+                      !webviewProvider.isRecoveringWebContent &&
+                      !_isUpdateRequired;
 
-                // Handle delay before hiding splash
-                if (isLoaded && !_shouldHideSplash) {
-                  _splashHideTimer?.cancel();
-                  _splashHideTimer =
-                      Timer(const Duration(milliseconds: 500), () {
-                    if (mounted) {
-                      setState(() {
-                        _shouldHideSplash = true;
-                      });
-                    }
-                  });
-                } else if (!isLoaded && _shouldHideSplash) {
-                  // Reset flag when loading again
-                  _splashHideTimer?.cancel();
-                  _shouldHideSplash = false;
-                }
-                final disableTopSafeArea = routeNoSafeArea.any((route) =>
-                        webviewProvider.currentUrl.contains(route)) ||
-                    WebViewHelper.isWebViewRoot(
-                      webviewProvider.currentUrl,
-                      rootUrl: EnvConfig.instance.webviewUrl,
-                    );
-                final disableBottomSafeArea = routeNoBottomSafeArea
-                    .any((route) => webviewProvider.currentUrl.contains(route));
-                return Stack(
-                  children: [
-                    Opacity(
-                      opacity: isLoaded ? 1.0 : 0.0,
-                      child: Container(
-                        color: Colors.white,
-                        child: SafeArea(
-                          top: !disableTopSafeArea,
-                          bottom: !disableBottomSafeArea,
-                          child: Navigator(
-                            key: _navigatorKeys[0],
-                            onGenerateRoute: (routeSettings) {
-                              return MaterialPageRoute(
-                                  builder: (_) => WebViewContainer());
-                            },
+                  // Handle delay before hiding splash
+                  if (isLoaded && !_shouldHideSplash) {
+                    _splashHideTimer?.cancel();
+                    _splashHideTimer =
+                        Timer(const Duration(milliseconds: 500), () {
+                      if (mounted) {
+                        setState(() {
+                          _shouldHideSplash = true;
+                        });
+                      }
+                    });
+                  } else if (!isLoaded && _shouldHideSplash) {
+                    // Reset flag when loading again
+                    _splashHideTimer?.cancel();
+                    _shouldHideSplash = false;
+                  }
+                  final disableTopSafeArea = routeNoSafeArea.any((route) =>
+                          webviewProvider.currentUrl.contains(route)) ||
+                      WebViewHelper.isWebViewRoot(
+                        webviewProvider.currentUrl,
+                        rootUrl: EnvConfig.instance.webviewUrl,
+                      );
+                  final disableBottomSafeArea = routeNoBottomSafeArea.any(
+                      (route) => webviewProvider.currentUrl.contains(route));
+                  return Stack(
+                    children: [
+                      Opacity(
+                        opacity: isLoaded ? 1.0 : 0.0,
+                        child: Container(
+                          color: Colors.white,
+                          child: SafeArea(
+                            top: !disableTopSafeArea,
+                            bottom: false,
+                            child: Navigator(
+                              key: _navigatorKeys[0],
+                              onGenerateRoute: (routeSettings) {
+                                return MaterialPageRoute(
+                                    builder: (_) => WebViewContainer());
+                              },
+                            ),
                           ),
                         ),
                       ),
-                    ),
-                    AnimatedOpacity(
-                      opacity: (!isLoaded || !_shouldHideSplash) ? 1.0 : 0.0,
-                      duration: const Duration(milliseconds: 300),
-                      child: (!isLoaded || !_shouldHideSplash)
-                          ? SplashOverlay()
-                          : SizedBox.shrink(),
-                    ),
-                    // Splash screen overlay that hides when webview loads
-                  ],
-                );
-              },
-            ))),
+                      AnimatedOpacity(
+                        opacity: (!isLoaded || !_shouldHideSplash) ? 1.0 : 0.0,
+                        duration: const Duration(milliseconds: 300),
+                        child: (!isLoaded || !_shouldHideSplash)
+                            ? SplashOverlay()
+                            : SizedBox.shrink(),
+                      ),
+                      // Splash screen overlay that hides when webview loads
+                    ],
+                  );
+                },
+              ),
+            ),
+          ),
+        ),
       ),
     );
   }

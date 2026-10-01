@@ -18,6 +18,8 @@ class EnvConfig {
   }
 
   String get env => dotenv.env['ENVIRONMENT'] ?? '';
+  bool get isDev => env == 'DEV';
+  bool get isProd => env == 'PROD';
   String get webviewUrl => dotenv.env['WEBVIEW_URL'] ?? '';
   String get baseUrl => dotenv.env['BASE_URL'] ?? '';
   String get apiKey => dotenv.env['API_KEY'] ?? '';

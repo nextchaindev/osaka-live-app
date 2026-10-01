@@ -1,11 +1,13 @@
 name: osaka_app
 description: A new Flutter project.
-version: 1.0.1+8
+version: 1.0.4+3
 
 environment:
   sdk: ">=3.2.0 <4.0.0"
 dependencies:
   flutter:
+    sdk: flutter
+  flutter_localizations:
     sdk: flutter
 
   #for push notification of firebase
@@ -21,7 +23,7 @@ dependencies:
   lottie: ^3.1.3
 
   #draw svg icons
-  flutter_svg: #^1.1.0
+  flutter_svg: ^2.3.0
 
   # state management
   provider: ^6.0.5
@@ -35,6 +37,10 @@ dependencies:
   path_provider: ^2.1.4
   camera: ^0.11.1
   video_player: ^2.9.2
+  image_picker: ^1.2.1
+  flutter_image_compress: ^2.4.0
+  image: ^4.8.0
+  light_compressor_v2: ^1.9.1
 
   # to download files
   dio: ^5.2.1+1
@@ -63,6 +69,9 @@ dependencies:
 
 dependency_overrides:
   permission_handler_apple: 9.4.5
+  # Avoid the 2.6.0 FFI/native-asset implementation, which embeds
+  # objective_c.framework without a dSYM in iOS archives.
+  path_provider_foundation: 2.5.1
 
 dev_dependencies:
   flutter_test:

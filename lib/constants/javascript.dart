@@ -135,6 +135,51 @@ String pushLocationPermission({
   """;
 }
 
+String pushKeyboardHeight({required double keyboardHeight}) {
+  final payload = <String, dynamic>{
+    'keyboardHeight': keyboardHeight,
+    'isVisible': keyboardHeight > 0,
+  };
+
+  return """
+        (function() {
+          try {
+            var payload = ${jsonEncode(payload)};
+            window.__osakaLiveKeyboardHeightLast = payload;
+            window.dispatchEvent(new CustomEvent(
+              'osaka-live-keyboard-height',
+              { detail: payload },
+            ));
+          } catch (e) {
+          }
+        })();
+      """;
+}
+
+String pushAppLifecycleState({
+  required String state,
+  required int updatedAt,
+}) {
+  final payload = <String, dynamic>{
+    'state': state,
+    'updatedAt': updatedAt,
+  };
+
+  return """
+        (function() {
+          try {
+            var payload = ${jsonEncode(payload)};
+            window.__osakaLiveAppLifecycleLast = payload;
+            window.dispatchEvent(new CustomEvent(
+              'osaka-live-app-lifecycle',
+              { detail: payload },
+            ));
+          } catch (e) {
+          }
+        })();
+      """;
+}
+
 String pushCameraResult({
   required String status,
   String? filePath,

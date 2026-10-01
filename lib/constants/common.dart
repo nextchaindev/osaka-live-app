@@ -6,9 +6,9 @@ const appName = "Osaka Live";
 String getLocalizedAppName(String? languageCode) {
   final env = EnvConfig.instance;
   if (languageCode == 'ko') {
-    return "Osaka Live ${env.env != "PROD" ? "(${env.env})" : ""}";
+    return "오사카라이브 ${!env.isProd ? "(${env.env})" : ""}";
   }
-  return "$appName ${env.env != "PROD" ? "(${env.env})" : ""}";
+  return "$appName ${!env.isProd ? "(${env.env})" : ""}";
 }
 
 const bool testEnviroment = false;
@@ -25,5 +25,10 @@ const String iOSForceUpdateVerion = 'ios_force_update_version';
 const String androidLastestLiveVersion = 'android_latest_live_version';
 const String iOSLastestLiveVersion = 'ios_latest_live_version';
 
-const List<String> routeNoSafeArea = ['/sessions/', '/introduce', '/map'];
-const List<String> routeNoBottomSafeArea = ['/introduce'];
+const List<String> routeNoSafeArea = [
+  '/sessions/',
+  '/introduce',
+  '/map',
+  '/setting'
+];
+const List<String> routeNoBottomSafeArea = ['/introduce', '/sessions/'];

@@ -1,5 +1,7 @@
 *.class
 *.lock
+!pubspec.lock
+!ios/Podfile.lock
 *.log
 *.pyc
 *.swp

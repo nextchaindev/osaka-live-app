@@ -4,24 +4,15 @@ A flutter project to initialize with inappwebview package.
 
 ## Getting Started
 
-### Create Environment Files
+### Environment files
 
-The project requires environment files for different environments. Run the setup script:
+Create the two local environment files from the template:
 
 ```bash
-# Make the script executable
-chmod +x scripts/create-env.sh
-
-# Create environment files (default: dev)
-./scripts/create-env.sh
-
-# Or specify environment
-ENVIRONMENT=dev ./scripts/create-env.sh
-ENVIRONMENT=staging ./scripts/create-env.sh
-ENVIRONMENT=prod ./scripts/create-env.sh
+cp lib/config/.env.example lib/config/.env.dev
+cp lib/config/.env.example lib/config/.env.prod
 ```
 
-This will create `.env.dev`, `.env.staging`, and `.env.prod` files in `lib/config/` directory.
 
 Remove git locally:
 

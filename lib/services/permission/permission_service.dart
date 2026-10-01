@@ -150,6 +150,16 @@ class PermissionService {
     }
   }
 
+  /// Requests only camera access for still-image capture, such as an avatar.
+  Future<bool> requestCameraPermission() async {
+    try {
+      return (await permission_handler.Permission.camera.request()).isGranted;
+    } catch (e) {
+      print('Error requesting camera permission: $e');
+      return false;
+    }
+  }
+
   // ==================== Location Permission ====================
 
   Future<Map<String, dynamic>> getLocationPermissionPayload() async {

@@ -39,7 +39,7 @@ class _DevToolButtonState extends State<DevToolButton> {
 
   @override
   Widget build(BuildContext context) {
-    if (EnvConfig.instance.env != 'DEV') return const SizedBox.shrink();
+    if (!EnvConfig.instance.isDev) return const SizedBox.shrink();
     _initFToast(context);
 
     final screenW = MediaQuery.of(context).size.width;

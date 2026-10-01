@@ -10,6 +10,15 @@ class LocationSyncService {
 
   static final LocationSyncService _instance = LocationSyncService._internal();
 
+  /// How far the reader has to move before the OS reports a new fix.
+  ///
+  /// This was 1m. Every fix is pushed into the WebView, and the site keys work
+  /// off the reader's position, so a walk turned into a stream of requests for
+  /// the same venues. 10m is far finer than anything downstream needs: the
+  /// posting proof allows 50m plus the device's own accuracy margin, and the
+  /// initial fix below is still taken at full precision.
+  static const int _positionStreamDistanceFilterMeters = 10;
+
   StreamSubscription<Position>? _positionSubscription;
   bool _starting = false;
 
@@ -72,7 +81,7 @@ class LocationSyncService {
     _positionSubscription ??= Geolocator.getPositionStream(
       locationSettings: const LocationSettings(
         accuracy: LocationAccuracy.high,
-        distanceFilter: 1,
+        distanceFilter: _positionStreamDistanceFilterMeters,
       ),
     ).listen(
       (position) {

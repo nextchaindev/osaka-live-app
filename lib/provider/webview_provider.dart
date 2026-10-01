@@ -1,9 +1,13 @@
 import 'dart:async';
 import 'dart:convert';
+import 'dart:io';
 
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_inappwebview/flutter_inappwebview.dart';
+import 'package:osaka_app/config/env_config.dart';
 import 'package:osaka_app/constants/javascript.dart';
+import 'package:osaka_app/helpers/webview_helper.dart';
 
 /// Unified WebView provider that manages controller, loading state, and URL
 ///
@@ -12,6 +16,10 @@ import 'package:osaka_app/constants/javascript.dart';
 /// - WebViewLoadingProvider: Loading state and progress tracking
 /// - WebviewURLProvider: Current URL tracking
 class WebViewProvider extends ChangeNotifier {
+  static const MethodChannel _webViewScrollLockChannel = MethodChannel(
+    'com.osaka.app/webview_scroll_lock',
+  );
+
   // ==================== Controller State ====================
   InAppWebViewController? _controller;
   Uri? _pendingDeepLink;
@@ -23,12 +31,60 @@ class WebViewProvider extends ChangeNotifier {
   bool _isOpeningDeepLink = false;
   bool _isFlushingLivePosition = false;
   bool _isWebViewReady = false;
+  bool _isRecoveringWebContent = false;
+  bool _isDisposed = false;
+  bool _webViewScrollLocked = false;
+  double _latestKeyboardHeight = 0;
+  double? _lastSentKeyboardHeight;
+  bool _isSendingKeyboardHeight = false;
+  String? _latestAppLifecycleState;
+  int? _latestAppLifecycleUpdatedAt;
+  int _appLifecycleSequence = 0;
   Map<String, dynamic>? _latestLocationPermissionPayload;
 
   static const Duration _livePositionThrottleDuration =
       Duration(milliseconds: 500);
 
   InAppWebViewController? get controller => _controller;
+  bool get webViewScrollLocked => _webViewScrollLocked;
+  bool get isRecoveringWebContent => _isRecoveringWebContent;
+
+  /// Controls the app-level splash while a WebView renderer is recreated after
+  /// the operating system terminates its content process in the background.
+  void setWebContentRecovery(bool isRecovering) {
+    if (_isRecoveringWebContent == isRecovering) return;
+    _isRecoveringWebContent = isRecovering;
+    notifyListeners();
+  }
+
+  Future<void> setWebViewScrollLocked(bool locked) async {
+    if (_webViewScrollLocked == locked) return;
+    _webViewScrollLocked = locked;
+    notifyListeners();
+    await _setNativeWebViewScrollLock(locked);
+  }
+
+  Future<void> _setNativeWebViewScrollLock(bool locked) async {
+    if (!Platform.isIOS) return;
+
+    try {
+      await _webViewScrollLockChannel.invokeMethod<void>(
+        'setWebViewScrollLocked',
+        {'locked': locked},
+      );
+      debugPrint(
+        '[OsakaLive][webview][scroll-lock] native lock: $locked',
+      );
+    } on PlatformException catch (error) {
+      debugPrint(
+        '[OsakaLive][webview][scroll-lock] failed to set native lock: $error',
+      );
+    } on MissingPluginException catch (error) {
+      debugPrint(
+        '[OsakaLive][webview][scroll-lock] native lock unavailable: $error',
+      );
+    }
+  }
 
   void setPendingDeepLink(Uri? uri) {
     _pendingDeepLink = uri;
@@ -36,10 +92,28 @@ class WebViewProvider extends ChangeNotifier {
   }
 
   void setController(InAppWebViewController? controller) {
+    if (!identical(_controller, controller)) {
+      if (_webViewScrollLocked) {
+        unawaited(_setNativeWebViewScrollLock(false));
+      }
+      _webViewScrollLocked = false;
+      _lastSentKeyboardHeight = null;
+    }
     _controller = controller;
     notifyListeners();
     unawaited(_flushPendingDeepLink());
     _queueLatestLivePosition();
+  }
+
+  void clearControllerIfCurrent(InAppWebViewController controller) {
+    if (_isDisposed || !identical(_controller, controller)) return;
+    _controller = null;
+    _isWebViewReady = false;
+    if (_webViewScrollLocked) {
+      unawaited(_setNativeWebViewScrollLock(false));
+    }
+    _webViewScrollLocked = false;
+    notifyListeners();
   }
 
   void setWebViewReady(bool isReady) {
@@ -48,7 +122,11 @@ class WebViewProvider extends ChangeNotifier {
       unawaited(_flushPendingDeepLink());
       _queueLatestLivePosition();
       _sendLatestLocationPermission();
+      _sendLatestKeyboardHeight();
+      unawaited(_sendLatestAppLifecycleState(_appLifecycleSequence));
     } else {
+      unawaited(setWebViewScrollLocked(false));
+      _lastSentKeyboardHeight = null;
       _lastLivePositionJson = null;
       _lastLivePositionSentAt = null;
     }
@@ -69,8 +147,29 @@ class WebViewProvider extends ChangeNotifier {
       return;
     }
 
+    if (!WebViewHelper.isTrustedWebUri(
+      target,
+      rootUrl: EnvConfig.instance.webviewUrl,
+    )) {
+      debugPrint('[OsakaLive][notification] rejected untrusted link: $target');
+      _pendingDeepLink = null;
+      return;
+    }
+
     _isOpeningDeepLink = true;
     try {
+      final currentUrl = await controller.getUrl();
+      if (currentUrl != null &&
+          WebViewHelper.isSameWebPath(currentUrl.uriValue, target)) {
+        debugPrint(
+          '[OsakaLive][notification] already on target path: ${target.path}',
+        );
+        if (_pendingDeepLink == target) {
+          _pendingDeepLink = null;
+        }
+        return;
+      }
+
       debugPrint('[OsakaLive][notification] loading pending link: $target');
       await controller.loadUrl(
         urlRequest: URLRequest(url: WebUri.uri(target)),
@@ -247,6 +346,89 @@ class WebViewProvider extends ChangeNotifier {
     );
   }
 
+  /// Sends the system keyboard height in Flutter logical pixels to the WebView.
+  Future<void> sendKeyboardHeight(double keyboardHeight) async {
+    if (_latestKeyboardHeight == keyboardHeight) {
+      return;
+    }
+    _latestKeyboardHeight = keyboardHeight;
+    await _sendLatestKeyboardHeight();
+  }
+
+  Future<void> _sendLatestKeyboardHeight() async {
+    if (_isSendingKeyboardHeight || !_isWebViewReady || _controller == null) {
+      return;
+    }
+
+    _isSendingKeyboardHeight = true;
+    try {
+      while (_isWebViewReady && _controller != null) {
+        final keyboardHeight = _latestKeyboardHeight;
+        if (_lastSentKeyboardHeight == keyboardHeight) {
+          return;
+        }
+
+        await _controller!.evaluateJavascript(
+          source: pushKeyboardHeight(keyboardHeight: keyboardHeight),
+        );
+        _lastSentKeyboardHeight = keyboardHeight;
+      }
+    } finally {
+      _isSendingKeyboardHeight = false;
+      if (_isWebViewReady &&
+          _controller != null &&
+          _lastSentKeyboardHeight != _latestKeyboardHeight) {
+        unawaited(_sendLatestKeyboardHeight());
+      }
+    }
+  }
+
+  Future<void> sendAppLifecycleState(String state) async {
+    final sequence = ++_appLifecycleSequence;
+    _latestAppLifecycleState = state;
+    _latestAppLifecycleUpdatedAt = DateTime.now().millisecondsSinceEpoch;
+
+    unawaited(_sendLatestAppLifecycleState(sequence));
+    if (state != AppLifecycleState.resumed.name) return;
+
+    for (final delay in const [
+      Duration(milliseconds: 250),
+      Duration(seconds: 1),
+    ]) {
+      unawaited(
+        Future<void>.delayed(delay).then((_) async {
+          await _sendLatestAppLifecycleState(sequence);
+        }),
+      );
+    }
+  }
+
+  Future<void> _sendLatestAppLifecycleState(int sequence) async {
+    if (_isDisposed || sequence != _appLifecycleSequence) return;
+    final controller = _controller;
+    final state = _latestAppLifecycleState;
+    final updatedAt = _latestAppLifecycleUpdatedAt;
+    if (!_isWebViewReady ||
+        controller == null ||
+        state == null ||
+        updatedAt == null) {
+      return;
+    }
+
+    try {
+      await controller.evaluateJavascript(
+        source: pushAppLifecycleState(state: state, updatedAt: updatedAt),
+      );
+      debugPrint(
+        '[OsakaLive][lifecycle][flutter] sent $state to WebView ($updatedAt)',
+      );
+    } catch (error) {
+      debugPrint(
+        '[OsakaLive][lifecycle][flutter] failed to send $state: $error',
+      );
+    }
+  }
+
   Future<void> sendCameraResult({
     required String status,
     String? filePath,
@@ -385,6 +567,7 @@ class WebViewProvider extends ChangeNotifier {
   // ==================== Reset All ====================
   /// Reset all WebView state (useful when navigating away or restarting)
   void resetAll() {
+    unawaited(setWebViewScrollLocked(false));
     _livePositionThrottleTimer?.cancel();
     _livePositionThrottleTimer = null;
     _latestLivePositionPayload = null;
@@ -393,7 +576,11 @@ class WebViewProvider extends ChangeNotifier {
     _lastLivePositionSentAt = null;
     _isFlushingLivePosition = false;
     _latestLocationPermissionPayload = null;
+    _latestKeyboardHeight = 0;
+    _lastSentKeyboardHeight = null;
+    _isSendingKeyboardHeight = false;
     _isWebViewReady = false;
+    _isRecoveringWebContent = false;
     _controller = null;
     _progress = 0.0;
     _hasInitialLoadCompleted = false;
@@ -403,6 +590,12 @@ class WebViewProvider extends ChangeNotifier {
 
   @override
   void dispose() {
+    _appLifecycleSequence++;
+    if (_webViewScrollLocked) {
+      _webViewScrollLocked = false;
+      unawaited(_setNativeWebViewScrollLock(false));
+    }
+    _isDisposed = true;
     _livePositionThrottleTimer?.cancel();
     super.dispose();
   }

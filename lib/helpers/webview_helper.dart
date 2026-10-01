@@ -28,6 +28,31 @@ class WebViewHelper {
         _normalizePath(current.path) == _normalizePath(root.path);
   }
 
+  /// Returns whether [uri] has the same web origin as [rootUrl].
+  static bool isTrustedWebUri(Uri uri, {required String rootUrl}) {
+    final root = Uri.tryParse(rootUrl);
+    if (root == null ||
+        !root.isScheme('http') && !root.isScheme('https') ||
+        !uri.isScheme('http') && !uri.isScheme('https')) {
+      return false;
+    }
+
+    return uri.scheme == root.scheme &&
+        uri.host == root.host &&
+        uri.port == root.port;
+  }
+
+  /// Returns whether [current] and [target] resolve to the same WebView route.
+  ///
+  /// Notification parameters and fragments do not identify a different page,
+  /// so callers can preserve the existing WebView state when only they differ.
+  static bool isSameWebPath(Uri current, Uri target) {
+    return current.scheme == target.scheme &&
+        current.host == target.host &&
+        current.port == target.port &&
+        _normalizePath(current.path) == _normalizePath(target.path);
+  }
+
   static String _normalizePath(String path) {
     if (path.isEmpty) {
       return '/';

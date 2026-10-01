@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter/services.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 import 'package:provider/provider.dart';
@@ -12,7 +13,6 @@ import 'package:osaka_app/provider/webview_provider.dart';
 
 import 'provider/navigation_bar_provider.dart';
 import 'constants/common.dart';
-import 'provider/saved_cookie_provider.dart';
 import 'provider/download_provider.dart';
 import 'provider/theme_provider.dart';
 
@@ -37,7 +37,7 @@ Future<String> _resolveEnvironment() async {
   final bundleId = (await PackageInfo.fromPlatform()).packageName;
   return switch (bundleId) {
     'live.osaka' => 'prod',
-    'live.osaka.staging' || 'live.osaka.dev.staging' => 'staging',
+    'live.osaka.staging' => 'staging',
     _ => 'dev',
   };
 }
@@ -47,6 +47,7 @@ Future main() async {
   try {
     final environment = await _resolveEnvironment();
     await EnvConfig.initialize(environment);
+    await clearLegacyStoredCookies();
     await FirebaseConfig.initializeFirebaseApp(environment);
     await FirebaseConfig.instance.captureInitialMessage();
 
@@ -65,7 +66,6 @@ Future main() async {
       ChangeNotifierProvider<NavigationBarProvider>(
           create: (_) => NavigationBarProvider()),
       ChangeNotifierProvider(create: (context) => WebViewProvider()),
-      ChangeNotifierProvider(create: (context) => SavedCookieProvider()),
       ChangeNotifierProvider(create: (context) => DownloadProvider()),
     ],
     builder: ((providerContext, child) {
@@ -87,7 +87,6 @@ class _MyAppState extends State<MyApp> {
     super.initState();
     try {
       FirebaseConfig.instance.initialize(context);
-      checkExistCookie(context);
     } on Exception catch (e) {
       print(e);
     }
@@ -110,10 +109,16 @@ class _MyAppState extends State<MyApp> {
           final locale = Localizations.maybeLocaleOf(context);
           return getLocalizedAppName(locale?.languageCode);
         },
-        // Support Korean and English locales
+        // Provides framework strings and semantics for Material, Cupertino,
+        // and general widgets in every supported locale below.
+        localizationsDelegates: const [
+          GlobalMaterialLocalizations.delegate,
+          GlobalCupertinoLocalizations.delegate,
+          GlobalWidgetsLocalizations.delegate,
+        ],
         supportedLocales: const [
-          Locale('en', ''), // English
-          Locale('ko', ''), // Korean
+          Locale('en'),
+          Locale('ko'),
         ],
         // Handle locale resolution
         localeResolutionCallback: (locale, supportedLocales) {

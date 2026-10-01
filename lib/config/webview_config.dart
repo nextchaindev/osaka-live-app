@@ -1,6 +1,7 @@
 import 'dart:io';
 
 import 'package:flutter_inappwebview/flutter_inappwebview.dart';
+import 'package:osaka_app/config/env_config.dart';
 
 /// WebView configuration settings
 class WebViewConfig {
@@ -12,8 +13,14 @@ class WebViewConfig {
       useOnDownloadStart: true,
       javaScriptEnabled: true,
       javaScriptCanOpenWindowsAutomatically: true,
-      cacheEnabled: false,
-      isInspectable: true,
+      // Browser caching stays on. The site's hashed JS, CSS and font assets
+      // are served immutable, so re-fetching them on every cold start is
+      // wasted mobile data. (On the current plugin `false` here is undone a
+      // moment later by the Android `cacheMode` default, so this is stating
+      // the intent rather than changing behaviour today — but it is what the
+      // setting should say.)
+      cacheEnabled: true,
+      isInspectable: EnvConfig.instance.isDev,
       clearCache: false,
       supportZoom: true,
       preferredContentMode: UserPreferredContentMode.MOBILE,
@@ -21,12 +28,14 @@ class WebViewConfig {
       verticalScrollBarEnabled: false,
       horizontalScrollBarEnabled: false,
       transparentBackground: true,
-      allowFileAccessFromFileURLs: true,
-      allowUniversalAccessFromFileURLs: true,
+      allowFileAccessFromFileURLs: false,
+      allowUniversalAccessFromFileURLs: false,
       thirdPartyCookiesEnabled: true,
-      allowFileAccess: true,
+      allowFileAccess: false,
       supportMultipleWindows: Platform.isIOS,
       allowsInlineMediaPlayback: true,
+      // Hide the previous/next/Done toolbar above the system keyboard.
+      disableInputAccessoryView: true,
     );
   }
 }
