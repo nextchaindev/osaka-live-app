@@ -479,6 +479,7 @@ class _MyHomePageState extends State<MyHomePage>
                   // Update splash visibility when progress changes
                   bool isLoaded = _isAppInitialized &&
                       webviewProvider.progress >= 1.0 &&
+                      !webviewProvider.isRecoveringWebContent &&
                       !_isUpdateRequired;
 
                   // Handle delay before hiding splash

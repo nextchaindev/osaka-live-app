@@ -9,6 +9,7 @@ import 'package:osaka_app/config/webview_config.dart';
 import 'package:osaka_app/helpers/colors.dart';
 import 'package:osaka_app/helpers/webview_helper.dart';
 import 'package:osaka_app/mixins/webview_lifecycle_mixin.dart';
+import 'package:osaka_app/mixins/webview_renderer_recovery_mixin.dart';
 import 'package:osaka_app/provider/download_provider.dart';
 import 'package:osaka_app/provider/webview_provider.dart';
 import 'package:osaka_app/repositories/auth_repository.dart';
@@ -28,7 +29,10 @@ class WebViewContainer extends StatefulWidget {
 }
 
 class _WebViewContainerState extends State<WebViewContainer>
-    with WebViewLifecycleMixin {
+    with
+        WebViewLifecycleMixin,
+        WidgetsBindingObserver,
+        WebViewRendererRecoveryMixin {
   // Progress States
   double _progress = 0;
   String _currentUrl = '';
@@ -44,13 +48,14 @@ class _WebViewContainerState extends State<WebViewContainer>
   bool _isDialogLoading = false;
   bool _isOpenDialog = false;
   bool _allowClosePopUp = true;
+  int _webViewGeneration = 0;
 
   late PullToRefreshController _pullToRefreshController;
 
   final String _initialUrl = EnvConfig.instance.webviewUrl;
   final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();
   final WebviewWindow _webviewWindow = WebviewWindow();
-  final _keepAlive = InAppWebViewKeepAlive();
+  late InAppWebViewKeepAlive _keepAlive;
   final InAppWebViewSettings _options = WebViewConfig.getDefaultSettings();
   final WebViewHelper _webViewHelper = WebViewHelper();
   final AuthRepository _authRepository = AuthRepository();
@@ -62,7 +67,9 @@ class _WebViewContainerState extends State<WebViewContainer>
   @override
   void initState() {
     super.initState();
+    initWebViewRendererRecovery();
     _webViewProvider = context.read<WebViewProvider>();
+    _keepAlive = InAppWebViewKeepAlive();
 
     _isValidURL = validateUrl(_initialUrl);
     _initPullToRequest();
@@ -98,6 +105,7 @@ class _WebViewContainerState extends State<WebViewContainer>
 
   @override
   void dispose() {
+    disposeWebViewRendererRecovery();
     final controller = _webViewController;
     if (controller != null) {
       // Notify after the widget tree finishes disposing to avoid rebuilding it.
@@ -107,6 +115,20 @@ class _WebViewContainerState extends State<WebViewContainer>
     }
     _webViewController = null;
     super.dispose();
+  }
+
+  @override
+  InAppWebViewController? get webViewControllerForRecovery =>
+      _webViewController;
+
+  @override
+  void recreateWebViewForRecovery() {
+    if (!mounted) return;
+    setState(() {
+      _progress = 0;
+      _keepAlive = InAppWebViewKeepAlive();
+      _webViewGeneration++;
+    });
   }
 
   @override
@@ -151,6 +173,7 @@ class _WebViewContainerState extends State<WebViewContainer>
                       children: [
                         _isValidURL
                             ? InAppWebView(
+                                key: ValueKey(_webViewGeneration),
                                 initialUrlRequest: URLRequest(
                                     url: WebUri.uri(Uri.parse(_initialUrl))),
                                 initialSettings: _options,
@@ -223,6 +246,7 @@ class _WebViewContainerState extends State<WebViewContainer>
                                       });
                                     },
                                   );
+                                  onWebViewRecoveryLoadComplete();
                                 },
                                 onReceivedError: (
                                   controller,
@@ -313,6 +337,10 @@ class _WebViewContainerState extends State<WebViewContainer>
                                   // Trigger splash visibility update in MainScreen
                                   // This will be handled by Consumer's addPostFrameCallback
                                 },
+                                onWebContentProcessDidTerminate:
+                                    onWebViewContentProcessDidTerminate,
+                                onRenderProcessGone: (controller, detail) =>
+                                    onWebViewRenderProcessGone(detail: detail),
                                 shouldOverrideUrlLoading:
                                     (controller, navigationAction) async {
                                   return super.getNavigationPolicy(

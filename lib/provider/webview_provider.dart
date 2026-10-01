@@ -31,6 +31,7 @@ class WebViewProvider extends ChangeNotifier {
   bool _isOpeningDeepLink = false;
   bool _isFlushingLivePosition = false;
   bool _isWebViewReady = false;
+  bool _isRecoveringWebContent = false;
   bool _isDisposed = false;
   bool _webViewScrollLocked = false;
   double _latestKeyboardHeight = 0;
@@ -46,6 +47,15 @@ class WebViewProvider extends ChangeNotifier {
 
   InAppWebViewController? get controller => _controller;
   bool get webViewScrollLocked => _webViewScrollLocked;
+  bool get isRecoveringWebContent => _isRecoveringWebContent;
+
+  /// Controls the app-level splash while a WebView renderer is recreated after
+  /// the operating system terminates its content process in the background.
+  void setWebContentRecovery(bool isRecovering) {
+    if (_isRecoveringWebContent == isRecovering) return;
+    _isRecoveringWebContent = isRecovering;
+    notifyListeners();
+  }
 
   Future<void> setWebViewScrollLocked(bool locked) async {
     if (_webViewScrollLocked == locked) return;
@@ -570,6 +580,7 @@ class WebViewProvider extends ChangeNotifier {
     _lastSentKeyboardHeight = null;
     _isSendingKeyboardHeight = false;
     _isWebViewReady = false;
+    _isRecoveringWebContent = false;
     _controller = null;
     _progress = 0.0;
     _hasInitialLoadCompleted = false;
