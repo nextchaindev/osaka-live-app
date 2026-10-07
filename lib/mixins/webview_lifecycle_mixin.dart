@@ -459,6 +459,21 @@ mixin WebViewLifecycleMixin<T extends StatefulWidget> on State<T> {
   }) async {
     final webUri = createWindowRequest.request.url;
 
+    // Embedded third-party content (for example Instagram, TikTok, and
+    // YouTube) commonly opens its outbound actions in a new window. Those
+    // windows do not pass through shouldOverrideUrlLoading, so apply the same
+    // origin policy here: leave the WebView and open third-party web URLs in
+    // the device's browser.
+    if (webUri != null &&
+        (webUri.isScheme('http') || webUri.isScheme('https')) &&
+        !WebViewHelper.isTrustedWebUri(
+          webUri.uriValue,
+          rootUrl: _webViewUrl,
+        )) {
+      await launchUrl(webUri.uriValue, mode: LaunchMode.externalApplication);
+      return false;
+    }
+
     // Check for file extensions
     if (webUri.toString().contains(
         RegExp(r'\.(pdf|doc|docx|xls|xlsx|ppt|pptx|zip|rar|txt|csv)$'))) {
