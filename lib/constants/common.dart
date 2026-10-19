@@ -8,6 +8,9 @@ String getLocalizedAppName(String? languageCode) {
   if (languageCode == 'ko') {
     return "오사카라이브 ${!env.isProd ? "(${env.env})" : ""}";
   }
+  if (languageCode == 'ja') {
+    return "大阪ライブ ${!env.isProd ? "(${env.env})" : ""}";
+  }
   return "$appName ${!env.isProd ? "(${env.env})" : ""}";
 }
 
@@ -29,6 +32,7 @@ const List<String> routeNoSafeArea = [
   '/sessions/',
   '/introduce',
   '/map',
-  '/setting'
+  '/setting',
+  '/venues/'
 ];
 const List<String> routeNoBottomSafeArea = ['/introduce', '/sessions/'];

@@ -6,6 +6,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_inappwebview/flutter_inappwebview.dart';
 import 'package:osaka_app/config/env_config.dart';
 import 'package:osaka_app/config/webview_config.dart';
+import 'package:osaka_app/l10n/generated/app_localizations.dart';
 import 'package:osaka_app/helpers/colors.dart';
 import 'package:osaka_app/helpers/webview_helper.dart';
 import 'package:osaka_app/mixins/webview_lifecycle_mixin.dart';
@@ -133,6 +134,7 @@ class _WebViewContainerState extends State<WebViewContainer>
 
   @override
   Widget build(BuildContext context) {
+    final strings = AppLocalizations.of(context)!;
     final webViewScrollLocked = context.select<WebViewProvider, bool>(
       (provider) => provider.webViewScrollLocked,
     );
@@ -398,7 +400,7 @@ class _WebViewContainerState extends State<WebViewContainer>
                               )
                             : Center(
                                 child: Text(
-                                'Url is not valid',
+                                strings.invalidUrl,
                                 style: Theme.of(context).textTheme.bodyLarge,
                               )),
                         _showNoInternet
@@ -420,17 +422,16 @@ class _WebViewContainerState extends State<WebViewContainer>
                                 child: NotFound(
                                     webViewController: _webViewController!,
                                     url: _currentUrl,
-                                    title1: '페이지를 찾을 수 없습니다',
-                                    title2:
-                                        '페이지를 찾을 수 없습니다. 다시 시도하거나 인터넷 연결을 확인해 주세요'))
+                                    title1: strings.pageError,
+                                    title2: strings.pageUrlError))
                             : const SizedBox(height: 0, width: 0),
                         _slowInternetPage
                             ? Center(
                                 child: NotFound(
                                     webViewController: _webViewController!,
                                     url: _currentUrl,
-                                    title1: '잘못된 URL',
-                                    title2: '잘못된 URL입니다. 다시 시도해 주세요'))
+                                    title1: strings.invalidUrl,
+                                    title2: strings.invalidUrl))
                             : const SizedBox(height: 0, width: 0),
                         // Loading overlay circle
                         _progress < 1.0 && _isValidURL

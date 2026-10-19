@@ -8,6 +8,8 @@ import 'package:osaka_app/constants/javascript.dart';
 import 'package:osaka_app/helpers/webview_helper.dart';
 import 'package:osaka_app/models/web_post_message.dart';
 import 'package:osaka_app/provider/webview_provider.dart';
+import 'package:osaka_app/provider/locale_provider.dart';
+import 'package:osaka_app/l10n/generated/app_localizations.dart';
 import 'package:osaka_app/repositories/auth_repository.dart';
 import 'package:osaka_app/screens/camera/custom_camera_screen.dart';
 import 'package:osaka_app/services/auth/social_login_service.dart';
@@ -117,10 +119,11 @@ class JsCommunicationService {
           return;
         }
 
+        final strings = AppLocalizations.of(context)!;
         final openSettings = await appDialog.showPermissionDialog(
           context,
-          title: '카메라와 마이크 권한이 필요합니다',
-          message: '라이브 영상을 촬영하려면 카메라와 마이크 권한이 필요합니다.\n\n설정에서 권한을 허용해 주세요.',
+          title: strings.cameraPermissionTitle,
+          message: strings.cameraPermissionMessage,
           icon: Icons.videocam_outlined,
         );
         if (openSettings) {
@@ -209,6 +212,18 @@ class JsCommunicationService {
 
             try {
               final decoded = jsonDecode(rawMessage);
+              if (decoded is Map<String, dynamic> &&
+                  decoded['type'] == 'set_locale') {
+                final locale = decoded['locale'];
+                final source = decoded['source'];
+                if (locale is String && source == 'user' && context.mounted) {
+                  await context.read<LocaleProvider>().setUserLocale(locale);
+                } else {
+                  debugPrint('Ignored invalid locale update');
+                }
+                return;
+              }
+
               if (decoded is Map<String, dynamic> &&
                   decoded['type'] == 'record_camera') {
                 await openCustomCamera();
@@ -315,11 +330,11 @@ class JsCommunicationService {
                 if (context.mounted &&
                     (permissionPayload['status'] != 'granted' ||
                         permissionPayload['serviceEnabled'] != true)) {
+                  final strings = AppLocalizations.of(context)!;
                   final openSettings = await appDialog.showPermissionDialog(
                     context,
-                    title: '위치 권한이 필요합니다',
-                    message:
-                        '주변 라이브 콘텐츠를 확인하고 지도를 업데이트하려면 위치 권한이 필요합니다.\n\n설정에서 권한을 허용해 주세요.',
+                    title: strings.locationPermissionTitle,
+                    message: strings.locationPermissionMessage,
                     icon: Icons.location_on_outlined,
                   );
                   if (openSettings) {

@@ -2,6 +2,7 @@ import 'package:osaka_app/helpers/themes.dart';
 import 'package:osaka_app/helpers/icons.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
+import 'package:osaka_app/l10n/generated/app_localizations.dart';
 
 class NoInternetWidget extends StatefulWidget {
   final void Function() reload;
@@ -29,6 +30,7 @@ class _NoInternetWidgetState extends State<NoInternetWidget> {
 
   @override
   Widget build(BuildContext context) {
+    final strings = AppLocalizations.of(context)!;
     return Container(
       color: Colors.white,
       alignment: Alignment.topCenter,
@@ -48,12 +50,12 @@ class _NoInternetWidgetState extends State<NoInternetWidget> {
             height: 16,
           ),
           Text(
-            'No internet connection',
+            strings.noInternetTitle,
             style: TextStyle(
                 fontSize: 16, fontWeight: FontWeight.w500, color: Colors.black),
           ),
           Text(
-            'Please check your internet connection and try again.',
+            strings.noInternetMessage,
             style: TextStyle(fontSize: 14, color: Color(0xff646464)),
           ),
           SizedBox(
@@ -72,8 +74,8 @@ class _NoInternetWidgetState extends State<NoInternetWidget> {
             onPressed: () {
               widget.reload();
             },
-            child: const Text(
-              'Retry',
+            child: Text(
+              strings.retry,
               style:
                   TextStyle(color: Colors.white, fontWeight: FontWeight.w500),
             ),

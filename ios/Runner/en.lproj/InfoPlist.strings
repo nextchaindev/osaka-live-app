@@ -1,0 +1,8 @@
+CFBundleDisplayName = "Osaka Live";
+CFBundleName = "Osaka Live";
+"NSCameraUsageDescription" = "Camera access lets you take photos and videos for chat, live sessions, profile photos, and support attachments.";
+"NSMicrophoneUsageDescription" = "Microphone access lets you record audio with chat and live camera videos.";
+"NSLocationWhenInUseUsageDescription" = "Location access shows nearby Osaka Live content and updates the map around you.";
+"NSLocationAlwaysAndWhenInUseUsageDescription" = "Location is used while you use the app to show nearby live content and verify camera recording locations.";
+"NSPhotoLibraryUsageDescription" = "Photo library access lets you choose photos and videos for chat, profiles, and support attachments.";
+"NSLocalNetworkUsageDescription" = "Local network access is used for development and debugging.";

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:osaka_app/provider/download_provider.dart';
 import 'package:osaka_app/provider/app_global_key.dart';
+import 'package:osaka_app/l10n/generated/app_localizations.dart';
 
 /// Widget that listens to DownloadProvider and shows snackbars
 /// Should be placed at the root of the widget tree
@@ -99,6 +100,7 @@ class _DownloadSnackBarState extends State<DownloadSnackBar> {
   Widget build(BuildContext context) {
     return Consumer<DownloadProvider>(
       builder: (context, provider, child) {
+        final strings = AppLocalizations.of(context)!;
         // Get context from navigatorKey to ensure ScaffoldMessenger is available
         final scaffoldContext = navigatorKey.currentContext ?? context;
 
@@ -136,7 +138,7 @@ class _DownloadSnackBarState extends State<DownloadSnackBar> {
                     mainAxisSize: MainAxisSize.min,
                     children: [
                       Text(
-                        'Downloading...',
+                        strings.downloading,
                         style: TextStyle(
                           color: Colors.white,
                           fontSize: 14,
@@ -211,7 +213,7 @@ class _DownloadSnackBarState extends State<DownloadSnackBar> {
                     mainAxisSize: MainAxisSize.min,
                     children: [
                       Text(
-                        'Download complete',
+                        strings.downloadComplete,
                         style: TextStyle(
                           color: Colors.white,
                           fontSize: 14,
@@ -255,7 +257,7 @@ class _DownloadSnackBarState extends State<DownloadSnackBar> {
                                   ),
                                   const SizedBox(width: 4),
                                   Text(
-                                    'Open',
+                                    strings.open,
                                     style: TextStyle(
                                       color: Colors.white,
                                       fontSize: 12,
@@ -306,7 +308,7 @@ class _DownloadSnackBarState extends State<DownloadSnackBar> {
                     mainAxisSize: MainAxisSize.min,
                     children: [
                       Text(
-                        'Download failed',
+                        strings.downloadFailed,
                         style: TextStyle(
                           color: Colors.white,
                           fontSize: 14,
@@ -322,10 +324,10 @@ class _DownloadSnackBarState extends State<DownloadSnackBar> {
                         ),
                         overflow: TextOverflow.ellipsis,
                       ),
-                      if (provider.errorMessage != null) ...[
+                      if (provider.hasError) ...[
                         const SizedBox(height: 2),
                         Text(
-                          provider.errorMessage!,
+                          strings.downloadFailedDetail,
                           style: TextStyle(
                             color: Colors.white.withValues(alpha: 0.6),
                             fontSize: 11,
