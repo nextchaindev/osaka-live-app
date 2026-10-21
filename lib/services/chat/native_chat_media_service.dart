@@ -17,6 +17,7 @@ import 'package:osaka_app/screens/camera/custom_camera_screen.dart';
 import 'package:osaka_app/l10n/generated/app_localizations.dart';
 import 'package:osaka_app/services/analytics/analytics_service.dart';
 import 'package:osaka_app/services/permission/permission_service.dart';
+import 'package:osaka_app/widgets/common/dialog.dart';
 
 class NativeChatMediaService {
   NativeChatMediaService._();
@@ -398,8 +399,7 @@ class NativeChatMediaService {
       );
     }
 
-    final granted = await PermissionService().requestCameraPermission();
-    if (!granted) {
+    if (!await _ensureCameraPermission(context, CustomCameraMode.photo)) {
       throw const _NativeChatMediaException('camera_permission_denied');
     }
     if (!context.mounted) {
@@ -567,6 +567,12 @@ class NativeChatMediaService {
     BuildContext context,
     CustomCameraMode mode,
   ) async {
+    if (!await _ensureCameraPermission(context, mode)) {
+      throw const _NativeChatMediaException('camera_permission_denied');
+    }
+    if (!context.mounted) {
+      throw const _NativeChatMediaException('view_unavailable');
+    }
     final result = await Navigator.of(context, rootNavigator: true)
         .push<CustomCameraCaptureResult>(
       MaterialPageRoute(
@@ -578,6 +584,31 @@ class NativeChatMediaService {
       ),
     );
     return result == null ? [] : [result.file];
+  }
+
+  Future<bool> _ensureCameraPermission(
+    BuildContext context,
+    CustomCameraMode mode,
+  ) async {
+    final permissionService = PermissionService();
+    final granted = mode == CustomCameraMode.video
+        ? await permissionService.requestCameraAndMicrophonePermission()
+        : await permissionService.requestCameraPermission();
+    if (granted || !context.mounted) {
+      return granted;
+    }
+
+    final strings = AppLocalizations.of(context)!;
+    final openSettings = await AppDialog().showPermissionDialog(
+      context,
+      title: strings.cameraPermissionTitle,
+      message: strings.cameraPermissionMessage,
+      icon: Icons.videocam_outlined,
+    );
+    if (openSettings) {
+      await permissionService.openAppSettings();
+    }
+    return false;
   }
 
   Future<_PreparedChatMedia> _prepareMedia(
