@@ -400,7 +400,9 @@ class NativeChatMediaService {
     }
 
     if (!await _ensureCameraPermission(context, CustomCameraMode.photo)) {
-      throw const _NativeChatMediaException('camera_permission_denied');
+      throw const _NativeChatMediaException(
+        'camera_permission_denied_dialog_shown',
+      );
     }
     if (!context.mounted) {
       throw const _NativeChatMediaException('view_unavailable');
@@ -568,7 +570,9 @@ class NativeChatMediaService {
     CustomCameraMode mode,
   ) async {
     if (!await _ensureCameraPermission(context, mode)) {
-      throw const _NativeChatMediaException('camera_permission_denied');
+      throw const _NativeChatMediaException(
+        'camera_permission_denied_dialog_shown',
+      );
     }
     if (!context.mounted) {
       throw const _NativeChatMediaException('view_unavailable');
