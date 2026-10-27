@@ -188,4 +188,76 @@ class AppLocalizationsJa extends AppLocalizations {
 
   @override
   String get downloadFailedDetail => 'ファイルを保存できませんでした。もう一度お試しください。';
+
+  @override
+  String get vjwPrepareTitle => 'Visit Japan Web 入力ヘルパー';
+
+  @override
+  String get vjwPrivacyNotice => 'パスポート情報は保存されません。入力値はこの端末だけに保存されます。';
+
+  @override
+  String get vjwFlightSection => 'フライト';
+
+  @override
+  String get vjwStaySection => '滞在先';
+
+  @override
+  String get vjwContactSection => '連絡先';
+
+  @override
+  String get vjwFlightNumber => '便名';
+
+  @override
+  String get vjwArrivalDate => '到着日';
+
+  @override
+  String get vjwStayName => '宿泊先名';
+
+  @override
+  String get vjwPostalCode => '郵便番号';
+
+  @override
+  String get vjwPrefecture => '都道府県';
+
+  @override
+  String get vjwCity => '市区町村';
+
+  @override
+  String get vjwAddress => '住所';
+
+  @override
+  String get vjwBuilding => '建物名';
+
+  @override
+  String get vjwStayPhone => '滞在先電話番号';
+
+  @override
+  String get vjwContactPhone => '連絡先電話番号';
+
+  @override
+  String get vjwOpen => 'Visit Japan Webを開く';
+
+  @override
+  String get vjwEdit => '保存した情報を編集';
+
+  @override
+  String get vjwDeleteAll => '保存した値をすべて削除';
+
+  @override
+  String get vjwInjected => '入力しました';
+
+  @override
+  String get vjwNoFocus => '先に入力欄をタップしてください';
+
+  @override
+  String get vjwSelectUnsupported => 'この欄は直接選択してください';
+
+  @override
+  String get vjwUnsupportedType => 'この欄には入力できません';
+
+  @override
+  String get vjwCopied => 'コピーしました。長押しして貼り付けてください';
+
+  @override
+  String get vjwLoading => '保存した値を読み込んでいます…';
 }

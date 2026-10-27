@@ -195,4 +195,77 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get downloadFailedDetail =>
       'Could not save this file. Please try again.';
+
+  @override
+  String get vjwPrepareTitle => 'Visit Japan Web helper';
+
+  @override
+  String get vjwPrivacyNotice =>
+      'Passport information is never stored. These values stay on this device.';
+
+  @override
+  String get vjwFlightSection => 'Flight';
+
+  @override
+  String get vjwStaySection => 'Stay';
+
+  @override
+  String get vjwContactSection => 'Contact';
+
+  @override
+  String get vjwFlightNumber => 'Flight number';
+
+  @override
+  String get vjwArrivalDate => 'Arrival date';
+
+  @override
+  String get vjwStayName => 'Stay name';
+
+  @override
+  String get vjwPostalCode => 'Postal code';
+
+  @override
+  String get vjwPrefecture => 'Prefecture';
+
+  @override
+  String get vjwCity => 'City';
+
+  @override
+  String get vjwAddress => 'Address';
+
+  @override
+  String get vjwBuilding => 'Building';
+
+  @override
+  String get vjwStayPhone => 'Stay phone';
+
+  @override
+  String get vjwContactPhone => 'Contact phone';
+
+  @override
+  String get vjwOpen => 'Open Visit Japan Web';
+
+  @override
+  String get vjwEdit => 'Edit saved values';
+
+  @override
+  String get vjwDeleteAll => 'Delete all saved values';
+
+  @override
+  String get vjwInjected => 'Entered';
+
+  @override
+  String get vjwNoFocus => 'Tap an input field first';
+
+  @override
+  String get vjwSelectUnsupported => 'Choose this field directly';
+
+  @override
+  String get vjwUnsupportedType => 'This field cannot be filled here';
+
+  @override
+  String get vjwCopied => 'Copied. Long press to paste.';
+
+  @override
+  String get vjwLoading => 'Loading saved values...';
 }
