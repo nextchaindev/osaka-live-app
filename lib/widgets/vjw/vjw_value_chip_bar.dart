@@ -35,86 +35,103 @@ class VjwValueChipBar extends StatelessWidget {
       child: BackdropFilter(
         filter: ImageFilter.blur(sigmaX: 18, sigmaY: 18),
         child: Material(
-          color: const Color.fromRGBO(23, 35, 31, 0.84),
-          elevation: 12,
-          shadowColor: Colors.black54,
-          child: SafeArea(
-            top: false,
+          color: Colors.transparent,
+          elevation: 10,
+          shadowColor: const Color.fromRGBO(23, 35, 31, 0.25),
+          shape: const RoundedRectangleBorder(
+            borderRadius: BorderRadius.vertical(top: Radius.circular(12)),
+          ),
+          child: Container(
+            color: Colors.white,
             child: Container(
               decoration: const BoxDecoration(
-                  border: Border(
-                      top: BorderSide(
-                          color: Color.fromRGBO(244, 239, 230, 0.18),
-                          width: 1))),
-              child: SingleChildScrollView(
-                scrollDirection: Axis.horizontal,
-                padding: const EdgeInsets.fromLTRB(12, 9, 12, 10),
-                child: Row(
-                  children: items
-                      .map((item) => Padding(
-                            padding: const EdgeInsets.only(right: 7),
-                            child: GestureDetector(
-                              onLongPress: () async {
-                                await Clipboard.setData(
-                                    ClipboardData(text: item.$2));
-                                if (context.mounted) {
-                                  ScaffoldMessenger.of(context).showSnackBar(
-                                      SnackBar(
-                                          content: Text(strings.vjwCopied)));
-                                }
-                              },
-                              child: ActionChip(
-                                backgroundColor: const Color(0xfff4efe6),
-                                side: BorderSide.none,
-                                shape: RoundedRectangleBorder(
-                                    borderRadius: BorderRadius.circular(10)),
-                                label: Text(
-                                  '${item.$1}  ${item.$2}',
-                                  style: const TextStyle(
-                                      color: Color(0xff17231f),
-                                      fontSize: 13,
-                                      fontWeight: FontWeight.w600),
-                                ),
-                                onPressed: () async {
-                                  String code;
-                                  try {
-                                    final result =
-                                        await controller?.evaluateJavascript(
-                                            source:
-                                                injectValueIntoActiveElement(
-                                                    item.$2));
-                                    code = result
-                                            ?.toString()
-                                            .replaceAll('"', '') ??
-                                        'no_focus';
-                                  } on Exception {
-                                    code = 'injection_failed';
-                                  }
-                                  if (code == 'injection_failed' ||
-                                      code == 'unknown') {
-                                    await Clipboard.setData(
-                                        ClipboardData(text: item.$2));
-                                  }
-                                  await _analytics.logEvent(
-                                      name: 'vjw_chip_inject',
-                                      parameters: {'result': code});
-                                  if (context.mounted && code != 'ok') {
-                                    final message = switch (code) {
-                                      'select_unsupported' =>
-                                        strings.vjwSelectUnsupported,
-                                      'unsupported_type' =>
-                                        strings.vjwUnsupportedType,
-                                      'no_focus' => strings.vjwNoFocus,
-                                      _ => strings.vjwCopied,
-                                    };
+                gradient: LinearGradient(
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                  colors: [
+                    Color.fromRGBO(226, 232, 255, 0.97),
+                    Color.fromRGBO(184, 199, 255, 0.92),
+                  ],
+                ),
+                borderRadius: BorderRadius.vertical(top: Radius.circular(12)),
+                border: Border(
+                  top: BorderSide(color: Color(0xff081dc9), width: 2.5),
+                ),
+              ),
+              child: SafeArea(
+                top: false,
+                child: SingleChildScrollView(
+                  scrollDirection: Axis.horizontal,
+                  padding: const EdgeInsets.fromLTRB(14, 10, 14, 10),
+                  child: Row(
+                    children: items
+                        .map((item) => Padding(
+                              padding: const EdgeInsets.only(right: 7),
+                              child: GestureDetector(
+                                onLongPress: () async {
+                                  await Clipboard.setData(
+                                      ClipboardData(text: item.$2));
+                                  if (context.mounted) {
                                     ScaffoldMessenger.of(context).showSnackBar(
-                                        SnackBar(content: Text(message)));
+                                        SnackBar(
+                                            content: Text(strings.vjwCopied)));
                                   }
                                 },
+                                child: ActionChip(
+                                  backgroundColor: Colors.white,
+                                  side: const BorderSide(
+                                      color: Color(0xffb8c7ff), width: 1),
+                                  shape: RoundedRectangleBorder(
+                                      borderRadius: BorderRadius.circular(13)),
+                                  label: Text(
+                                    '${item.$1}  ${item.$2}',
+                                    style: const TextStyle(
+                                        color: Color(0xff172d9d),
+                                        fontSize: 13,
+                                        fontWeight: FontWeight.w700),
+                                  ),
+                                  onPressed: () async {
+                                    String code;
+                                    try {
+                                      final result =
+                                          await controller?.evaluateJavascript(
+                                              source:
+                                                  injectValueIntoActiveElement(
+                                                      item.$2));
+                                      code = result
+                                              ?.toString()
+                                              .replaceAll('"', '') ??
+                                          'no_focus';
+                                    } on Exception {
+                                      code = 'injection_failed';
+                                    }
+                                    if (code == 'injection_failed' ||
+                                        code == 'unknown') {
+                                      await Clipboard.setData(
+                                          ClipboardData(text: item.$2));
+                                    }
+                                    await _analytics.logEvent(
+                                        name: 'vjw_chip_inject',
+                                        parameters: {'result': code});
+                                    if (context.mounted && code != 'ok') {
+                                      final message = switch (code) {
+                                        'select_unsupported' =>
+                                          strings.vjwSelectUnsupported,
+                                        'unsupported_type' =>
+                                          strings.vjwUnsupportedType,
+                                        'no_focus' => strings.vjwNoFocus,
+                                        _ => strings.vjwCopied,
+                                      };
+                                      ScaffoldMessenger.of(context)
+                                          .showSnackBar(
+                                              SnackBar(content: Text(message)));
+                                    }
+                                  },
+                                ),
                               ),
-                            ),
-                          ))
-                      .toList(),
+                            ))
+                        .toList(),
+                  ),
                 ),
               ),
             ),

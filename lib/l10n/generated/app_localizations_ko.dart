@@ -241,9 +241,6 @@ class AppLocalizationsKo extends AppLocalizations {
   String get vjwDeleteAll => '저장된 값 모두 삭제';
 
   @override
-  String get vjwEdit => '값 수정';
-
-  @override
   String get vjwInjected => '입력했어요';
 
   @override

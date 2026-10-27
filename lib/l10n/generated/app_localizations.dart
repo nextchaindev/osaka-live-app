@@ -556,12 +556,6 @@ abstract class AppLocalizations {
   /// **'Delete all saved values'**
   String get vjwDeleteAll;
 
-  /// No description provided for @vjwEdit.
-  ///
-  /// In en, this message translates to:
-  /// **'Edit values'**
-  String get vjwEdit;
-
   /// No description provided for @vjwInjected.
   ///
   /// In en, this message translates to:
