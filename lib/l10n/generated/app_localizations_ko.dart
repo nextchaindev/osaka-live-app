@@ -12,10 +12,10 @@ class AppLocalizationsKo extends AppLocalizations {
   String get appName => '오사카라이브';
 
   @override
-  String get openSettings => '설정으로 이동';
+  String get openSettings => '설정 열기';
 
   @override
-  String get later => '나중에';
+  String get later => '나중에 하기';
 
   @override
   String get cameraPermissionTitle => '카메라와 마이크 권한이 필요합니다';
@@ -28,8 +28,7 @@ class AppLocalizationsKo extends AppLocalizations {
   String get locationPermissionTitle => '위치 권한이 필요합니다';
 
   @override
-  String get locationPermissionMessage =>
-      '주변 라이브 콘텐츠를 확인하고 지도를 업데이트하려면 위치 권한이 필요합니다. 설정에서 권한을 허용해 주세요.';
+  String get locationPermissionMessage => '내 주변 라이브를 보여드리려면 위치 권한이 필요해요';
 
   @override
   String get storagePermissionTitle => '저장 공간 권한이 필요합니다';
@@ -39,16 +38,16 @@ class AppLocalizationsKo extends AppLocalizations {
       '파일을 다운로드하려면 저장 공간 권한이 필요합니다. 설정에서 권한을 허용해 주세요.';
 
   @override
-  String get noInternetTitle => '인터넷 연결이 없습니다';
+  String get noInternetTitle => '인터넷이 끊겼어요';
 
   @override
-  String get noInternetMessage => '인터넷 연결을 확인한 후 다시 시도해 주세요.';
+  String get noInternetMessage => '와이파이나 데이터가 켜져 있는지 확인해 주세요';
 
   @override
   String get retry => '다시 시도';
 
   @override
-  String get pageError => '알 수 없는 오류가 발생했습니다.';
+  String get pageError => '화면을 불러오지 못했어요';
 
   @override
   String get pageNotFound => '페이지를 찾을 수 없습니다.';
@@ -102,10 +101,10 @@ class AppLocalizationsKo extends AppLocalizations {
   String get chatVideoPrompt => '채팅에 보낼 동영상을 촬영하세요';
 
   @override
-  String get liveOnlyPrompt => '🔒 갤러리 업로드 불가 · 현장 라이브만';
+  String get liveOnlyPrompt => '🔒 저장된 영상은 못 올려요 · 지금 여기서만';
 
   @override
-  String get liveVideoOnly => '5~30초 라이브 영상만 허용';
+  String get liveVideoOnly => '5초에서 30초까지 찍을 수 있어요';
 
   @override
   String get maxVideoDuration => '최대 30초까지 촬영할 수 있어요';
@@ -114,7 +113,7 @@ class AppLocalizationsKo extends AppLocalizations {
   String get choosePhoto => '사진을 선택해 주세요';
 
   @override
-  String get callReviewGps => '통화 리뷰 · GPS 인증중';
+  String get callReviewGps => '여기 계신지 확인 중';
 
   @override
   String get photoMode => '사진';
@@ -132,7 +131,7 @@ class AppLocalizationsKo extends AppLocalizations {
   String get invalidUrl => '잘못된 URL입니다. 다시 시도해 주세요.';
 
   @override
-  String get exitConfirm => '앱을 종료하시겠습니까?';
+  String get exitConfirm => '오사카 라이브를 닫을까요?';
 
   @override
   String get no => '아니요';
@@ -144,7 +143,7 @@ class AppLocalizationsKo extends AppLocalizations {
   String get updateRequired => '업데이트가 필요합니다';
 
   @override
-  String get updateMessage => '최신 버전으로 업데이트하고 더 나은 경험을 누려보세요.';
+  String get updateMessage => '오사카 라이브 새 버전이 나왔어요.\n지금 업데이트해 주세요.';
 
   @override
   String get updateNow => '업데이트하기';
