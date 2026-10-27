@@ -500,14 +500,14 @@ class _MyHomePageState extends State<MyHomePage>
                     _splashHideTimer?.cancel();
                     _shouldHideSplash = false;
                   }
-                  final disableTopSafeArea = routeNoSafeArea.any((route) =>
-                          webviewProvider.currentUrl.contains(route)) ||
-                      WebViewHelper.isWebViewRoot(
-                        webviewProvider.currentUrl,
-                        rootUrl: EnvConfig.instance.webviewUrl,
-                      );
-                  final disableBottomSafeArea = routeNoBottomSafeArea.any(
-                      (route) => webviewProvider.currentUrl.contains(route));
+                  // final disableTopSafeArea = routeNoSafeArea.any((route) =>
+                  //         webviewProvider.currentUrl.contains(route)) ||
+                  //     WebViewHelper.isWebViewRoot(
+                  //       webviewProvider.currentUrl,
+                  //       rootUrl: EnvConfig.instance.webviewUrl,
+                  //     );
+                  // final disableBottomSafeArea = routeNoBottomSafeArea.any(
+                  //     (route) => webviewProvider.currentUrl.contains(route));
                   return Stack(
                     children: [
                       Opacity(
@@ -515,7 +515,7 @@ class _MyHomePageState extends State<MyHomePage>
                         child: Container(
                           color: Colors.white,
                           child: SafeArea(
-                            top: !disableTopSafeArea,
+                            top: false,
                             bottom: false,
                             child: Navigator(
                               key: _navigatorKeys[0],
