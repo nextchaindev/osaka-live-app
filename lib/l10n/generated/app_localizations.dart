@@ -550,6 +550,12 @@ abstract class AppLocalizations {
   /// **'Open Visit Japan Web'**
   String get vjwOpen;
 
+  /// No description provided for @vjwEdit.
+  ///
+  /// In en, this message translates to:
+  /// **'Edit saved values'**
+  String get vjwEdit;
+
   /// No description provided for @vjwDeleteAll.
   ///
   /// In en, this message translates to:
