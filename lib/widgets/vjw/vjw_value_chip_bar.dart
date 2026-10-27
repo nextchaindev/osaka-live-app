@@ -15,6 +15,53 @@ class VjwValueChipBar extends StatelessWidget {
   final InAppWebViewController? controller;
   static final _analytics = AnalyticsService();
 
+  void _showToast(BuildContext context, String message) {
+    final messenger = ScaffoldMessenger.maybeOf(context);
+    if (messenger == null) return;
+    final bottomInset = MediaQuery.of(context).viewPadding.bottom;
+    messenger
+      ..clearSnackBars()
+      ..showSnackBar(
+        SnackBar(
+          behavior: SnackBarBehavior.floating,
+          margin: EdgeInsets.fromLTRB(16, 0, 16, bottomInset + 78),
+          padding: EdgeInsets.zero,
+          backgroundColor: Colors.transparent,
+          elevation: 0,
+          duration: const Duration(seconds: 2),
+          content: Container(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 11),
+            decoration: BoxDecoration(
+              color: const Color(0xff172d9d),
+              borderRadius: BorderRadius.circular(14),
+              boxShadow: const [
+                BoxShadow(
+                  color: Color(0x33000000),
+                  blurRadius: 14,
+                  offset: Offset(0, 6),
+                ),
+              ],
+            ),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const Icon(Icons.check_circle_outline,
+                    color: Colors.white, size: 18),
+                const SizedBox(width: 8),
+                Flexible(
+                  child: Text(message,
+                      style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 13,
+                          fontWeight: FontWeight.w700)),
+                ),
+              ],
+            ),
+          ),
+        ),
+      );
+  }
+
   @override
   Widget build(BuildContext context) {
     final strings = AppLocalizations.of(context)!;
@@ -72,9 +119,7 @@ class VjwValueChipBar extends StatelessWidget {
                                   await Clipboard.setData(
                                       ClipboardData(text: item.$2));
                                   if (context.mounted) {
-                                    ScaffoldMessenger.of(context).showSnackBar(
-                                        SnackBar(
-                                            content: Text(strings.vjwCopied)));
+                                    _showToast(context, strings.vjwCopied);
                                   }
                                 },
                                 child: ActionChip(
@@ -105,27 +150,34 @@ class VjwValueChipBar extends StatelessWidget {
                                     } on Exception {
                                       code = 'injection_failed';
                                     }
-                                    if (code == 'injection_failed' ||
-                                        code == 'unknown') {
+                                    final shouldCopyFallback = {
+                                      'injection_failed',
+                                      'unknown',
+                                      'select_unsupported',
+                                      'unsupported_type',
+                                    }.contains(code);
+                                    if (shouldCopyFallback) {
                                       await Clipboard.setData(
                                           ClipboardData(text: item.$2));
                                     }
                                     await _analytics.logEvent(
                                         name: 'vjw_chip_inject',
                                         parameters: {'result': code});
-                                    if (context.mounted && code != 'ok') {
-                                      final message = switch (code) {
-                                        'select_unsupported' =>
-                                          strings.vjwSelectUnsupported,
-                                        'unsupported_type' =>
-                                          strings.vjwUnsupportedType,
-                                        'no_focus' => strings.vjwNoFocus,
-                                        _ => strings.vjwCopied,
-                                      };
-                                      ScaffoldMessenger.of(context)
-                                          .showSnackBar(
-                                              SnackBar(content: Text(message)));
-                                    }
+                                    if (!context.mounted) return;
+                                    final message = code == 'ok'
+                                        ? strings.vjwInjected
+                                        : shouldCopyFallback
+                                            ? strings.vjwCopied
+                                            : switch (code) {
+                                                'select_unsupported' =>
+                                                  strings.vjwSelectUnsupported,
+                                                'unsupported_type' =>
+                                                  strings.vjwUnsupportedType,
+                                                'no_focus' =>
+                                                  strings.vjwNoFocus,
+                                                _ => strings.vjwCopied,
+                                              };
+                                    _showToast(context, message);
                                   },
                                 ),
                               ),
