@@ -1,46 +1,5 @@
 import 'dart:convert';
 
-String injectValueIntoActiveElement(String value) {
-  final encoded = jsonEncode(value);
-  return '''
-(function(v){
-  var el = document.activeElement;
-  if (!el || el === document.body) el = window.__vjwLastFocused;
-  if (!el) return 'no_focus';
-  if (el.tagName === 'SELECT') return 'select_unsupported';
-  var editable = el.tagName === 'INPUT' || el.tagName === 'TEXTAREA' || el.isContentEditable;
-  if (!editable) return 'no_focus';
-  if (el.tagName === 'INPUT') {
-    var t = (el.type || '').toLowerCase();
-    if (['checkbox','radio','file','password'].indexOf(t) !== -1) return 'unsupported_type';
-  }
-  if (!el.isContentEditable) {
-    var proto = el.tagName === 'TEXTAREA' ? HTMLTextAreaElement.prototype : HTMLInputElement.prototype;
-    var setter = Object.getOwnPropertyDescriptor(proto, 'value');
-    if (setter && setter.set) setter.set.call(el, v); else el.value = v;
-  } else { el.textContent = v; }
-  el.dispatchEvent(new Event('input', {bubbles:true}));
-  el.dispatchEvent(new Event('change', {bubbles:true}));
-  return 'ok';
-})($encoded);
-''';
-}
-
-const installVjwFocusTracker = '''
-(function(){
-  if (window.__vjwFocusTrackerInstalled) return;
-  window.__vjwFocusTrackerInstalled = true;
-  document.addEventListener('focusin', function(e){
-    var el = e.target;
-    if (el && (el.tagName === 'INPUT' || el.tagName === 'TEXTAREA' || el.isContentEditable)) window.__vjwLastFocused = el;
-  }, true);
-})();
-''';
-
-String pushVjwHelperResult(String result) => '''
-(function(){ window.dispatchEvent(new CustomEvent('vjw_helper_result', {detail:{result:${jsonEncode(result)}}})); })();
-''';
-
 const listenRouterChange = """
         // Listen for pushState and replaceState events in SPA, guard to avoid duplicate observers.
         (function() {

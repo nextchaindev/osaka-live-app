@@ -1,4 +1,3 @@
-import 'dart:async';
 import 'dart:convert';
 
 import 'package:flutter/foundation.dart';
@@ -13,8 +12,6 @@ import 'package:osaka_app/provider/locale_provider.dart';
 import 'package:osaka_app/l10n/generated/app_localizations.dart';
 import 'package:osaka_app/repositories/auth_repository.dart';
 import 'package:osaka_app/screens/camera/custom_camera_screen.dart';
-import 'package:osaka_app/screens/vjw/vjw_prepare_screen.dart';
-import 'package:osaka_app/services/analytics/analytics_service.dart';
 import 'package:osaka_app/services/auth/social_login_service.dart';
 import 'package:osaka_app/services/chat/native_chat_media_service.dart';
 import 'package:osaka_app/services/location/location_sync_service.dart';
@@ -22,7 +19,6 @@ import 'package:osaka_app/services/permission/permission_service.dart';
 import 'package:osaka_app/widgets/common/dialog.dart';
 import 'package:provider/provider.dart';
 import 'package:share_plus/share_plus.dart';
-import 'package:url_launcher/url_launcher.dart';
 
 /// Service for handling JavaScript communication with WebView
 /// Manages route changes, post messages, and contacts access
@@ -72,7 +68,6 @@ class JsCommunicationService {
     final permissionService = PermissionService();
     final appDialog = AppDialog();
     final locationSyncService = LocationSyncService();
-    final analyticsService = AnalyticsService();
     final trustedOrigin = Uri.parse(webViewUrl).origin;
 
     Future<void> sendLocationPermissionPayload(
@@ -147,61 +142,6 @@ class JsCommunicationService {
           builder: (_) => const CustomCameraScreen(),
         ),
       );
-    }
-
-    Future<void> acknowledgeVjwHelperOpened() async {
-      try {
-        await controller.evaluateJavascript(
-          source: pushVjwHelperResult('vjw_helper_opened'),
-        );
-      } on Exception catch (error) {
-        debugPrint('Failed to acknowledge VJW helper request: $error');
-      }
-    }
-
-    Future<void> handleVjwHelper(Map<String, dynamic> message) async {
-      final data = message['messageData'];
-      final payload = data is Map<String, dynamic>
-          ? <String, dynamic>{
-              if (data['stayName'] is String) 'stayName': data['stayName'],
-              if (data['stayAddress'] is String)
-                'stayAddress': data['stayAddress'],
-              if (data['stayPhone'] is String) 'stayPhone': data['stayPhone'],
-            }
-          : null;
-      if (!context.mounted) return;
-      final pushFuture = Navigator.of(context, rootNavigator: true).push(
-        VjwPrepareScreen.route(prefill: payload),
-      );
-      // Let the first route frames render before starting native WebView and
-      // analytics work. Both calls can perform platform work synchronously
-      // before their first await.
-      unawaited(Future<void>.delayed(const Duration(milliseconds: 180), () {
-        unawaited(analyticsService.logEvent(name: 'vjw_helper_open'));
-        unawaited(acknowledgeVjwHelperOpened());
-      }));
-      await pushFuture;
-    }
-
-    Future<void> openOfficialVjwExternally(Map<String, dynamic> message) async {
-      final url = message['url']?.toString();
-      final uri = Uri.tryParse(url ?? '');
-      if (uri == null ||
-          uri.scheme != 'https' ||
-          uri.host != 'www.vjw.digital.go.jp') {
-        debugPrint('Ignored invalid external VJW URL request');
-        return;
-      }
-      final opened = await launchUrl(uri, mode: LaunchMode.externalApplication);
-      if (opened) {
-        try {
-          await controller.evaluateJavascript(
-            source: pushVjwHelperResult('vjw_external_opened'),
-          );
-        } on Exception catch (error) {
-          debugPrint('Failed to acknowledge external VJW launch: $error');
-        }
-      }
     }
 
     Future<void> handleSocialLogin(Map<String, dynamic> message) async {
@@ -293,18 +233,6 @@ class JsCommunicationService {
               if (decoded is Map<String, dynamic> &&
                   decoded['type'] == 'social_login') {
                 await handleSocialLogin(decoded);
-                return;
-              }
-
-              if (decoded is Map<String, dynamic> &&
-                  decoded['type'] == 'open_vjw_helper') {
-                await handleVjwHelper(decoded);
-                return;
-              }
-
-              if (decoded is Map<String, dynamic> &&
-                  decoded['type'] == 'open_external_url') {
-                await openOfficialVjwExternally(decoded);
                 return;
               }
 
