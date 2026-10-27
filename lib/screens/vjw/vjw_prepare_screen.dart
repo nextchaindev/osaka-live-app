@@ -50,10 +50,6 @@ class _VjwPrepareScreenState extends State<VjwPrepareScreen> {
   VjwHelperValues _values = const VjwHelperValues();
   final _controllers = <String, TextEditingController>{};
   bool _isLoading = true;
-  bool _isEditing = true;
-
-  bool _hasSavedValues(VjwHelperValues values) =>
-      values.toJson().values.any((value) => value.toString().trim().isNotEmpty);
 
   @override
   void initState() {
@@ -66,8 +62,8 @@ class _VjwPrepareScreenState extends State<VjwPrepareScreen> {
   Future<void> _load() async {
     try {
       var values = widget.initialValues ?? await _repository.load();
-      final hasStoredValues = _hasSavedValues(values);
-      if (!hasStoredValues && widget.prefill != null) {
+      if (values.toJson().values.every((value) => value.toString().isEmpty) &&
+          widget.prefill != null) {
         values = values.copyWith(
             stayName: widget.prefill!['stayName']?.toString(),
             stayAddressLine: widget.prefill!['stayAddress']?.toString(),
@@ -76,7 +72,6 @@ class _VjwPrepareScreenState extends State<VjwPrepareScreen> {
       if (!mounted) return;
       setState(() {
         _values = values;
-        _isEditing = !hasStoredValues;
         _syncControllers();
       });
     } finally {
@@ -108,10 +103,7 @@ class _VjwPrepareScreenState extends State<VjwPrepareScreen> {
     );
     await _repository.save(v);
     if (!mounted) return;
-    setState(() {
-      _values = v;
-      _isEditing = false;
-    });
+    setState(() => _values = v);
     await _analytics.logEvent(name: 'vjw_values_saved');
   }
 
@@ -121,7 +113,6 @@ class _VjwPrepareScreenState extends State<VjwPrepareScreen> {
     if (!mounted) return;
     setState(() {
       _values = const VjwHelperValues();
-      _isEditing = true;
       _syncControllers();
     });
   }
@@ -300,66 +291,47 @@ class _VjwPrepareScreenState extends State<VjwPrepareScreen> {
                   Container(
                     padding: const EdgeInsets.all(18),
                     decoration: BoxDecoration(
-                        color: const Color(0xfffff7e0),
-                        borderRadius: BorderRadius.circular(18),
-                        border: Border.all(color: const Color(0xffffd98a))),
+                        color: const Color(0xff17231f),
+                        borderRadius: BorderRadius.circular(22)),
                     child: Text(s.vjwPrivacyNotice,
                         style: const TextStyle(
-                            color: Color(0xff79501b),
+                            color: Color(0xfff4efe6),
                             fontSize: 14,
                             height: 1.45,
                             fontWeight: FontWeight.w600)),
                   ),
                   _vjwBrandBanner(),
-                  if (_isEditing || !_hasSavedValues(_values)) ...[
-                    _sectionTitle(
-                        s.vjwFlightSection, Icons.flight_takeoff_rounded),
-                    _field('flightNumber', s.vjwFlightNumber),
-                    const SizedBox(height: 9),
-                    _field('arrivalDate', s.vjwArrivalDate,
-                        readOnly: true,
-                        onTap: _pickArrivalDate,
-                        suffixIcon: const Icon(Icons.calendar_month_rounded,
-                            color: Color(0xffd66a3d))),
-                    const SizedBox(height: 22),
-                    _sectionTitle(s.vjwStaySection, Icons.hotel_rounded),
-                    _field('stayName', s.vjwStayName),
-                    const SizedBox(height: 9),
-                    _field('stayPostalCode', s.vjwPostalCode,
-                        keyboardType: TextInputType.number),
-                    const SizedBox(height: 9),
-                    _prefectureField(context, s.vjwPrefecture),
-                    const SizedBox(height: 9),
-                    _field('stayCity', s.vjwCity),
-                    const SizedBox(height: 9),
-                    _field('stayAddressLine', s.vjwAddress),
-                    const SizedBox(height: 9),
-                    _field('stayBuilding', s.vjwBuilding),
-                    const SizedBox(height: 9),
-                    _field('stayPhone', s.vjwStayPhone,
-                        keyboardType: TextInputType.phone),
-                    const SizedBox(height: 22),
-                    _sectionTitle(s.vjwContactSection, Icons.phone_rounded),
-                    _field('contactPhone', s.vjwContactPhone,
-                        keyboardType: TextInputType.phone),
-                    const SizedBox(height: 24),
-                  ] else ...[
-                    _buildSummary(s),
-                    const SizedBox(height: 18),
-                    OutlinedButton.icon(
-                        style: OutlinedButton.styleFrom(
-                          foregroundColor: const Color(0xff9b4b32),
-                          side: const BorderSide(color: Color(0xffd66a3d)),
-                          minimumSize: const Size.fromHeight(48),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(14),
-                          ),
-                        ),
-                        onPressed: () => setState(() => _isEditing = true),
-                        icon: const Icon(Icons.edit_rounded),
-                        label: Text(s.vjwEdit)),
-                    const SizedBox(height: 16),
-                  ],
+                  _sectionTitle(
+                      s.vjwFlightSection, Icons.flight_takeoff_rounded),
+                  _field('flightNumber', s.vjwFlightNumber),
+                  const SizedBox(height: 9),
+                  _field('arrivalDate', s.vjwArrivalDate,
+                      readOnly: true,
+                      onTap: _pickArrivalDate,
+                      suffixIcon: const Icon(Icons.calendar_month_rounded,
+                          color: Color(0xffd66a3d))),
+                  const SizedBox(height: 22),
+                  _sectionTitle(s.vjwStaySection, Icons.hotel_rounded),
+                  _field('stayName', s.vjwStayName),
+                  const SizedBox(height: 9),
+                  _field('stayPostalCode', s.vjwPostalCode,
+                      keyboardType: TextInputType.number),
+                  const SizedBox(height: 9),
+                  _prefectureField(context, s.vjwPrefecture),
+                  const SizedBox(height: 9),
+                  _field('stayCity', s.vjwCity),
+                  const SizedBox(height: 9),
+                  _field('stayAddressLine', s.vjwAddress),
+                  const SizedBox(height: 9),
+                  _field('stayBuilding', s.vjwBuilding),
+                  const SizedBox(height: 9),
+                  _field('stayPhone', s.vjwStayPhone,
+                      keyboardType: TextInputType.phone),
+                  const SizedBox(height: 22),
+                  _sectionTitle(s.vjwContactSection, Icons.phone_rounded),
+                  _field('contactPhone', s.vjwContactPhone,
+                      keyboardType: TextInputType.phone),
+                  const SizedBox(height: 24),
                   FilledButton(
                       style: FilledButton.styleFrom(
                           backgroundColor: const Color(0xffd66a3d),
@@ -396,54 +368,6 @@ class _VjwPrepareScreenState extends State<VjwPrepareScreen> {
                   fontWeight: FontWeight.w800)),
         ]),
       );
-
-  Widget _buildSummary(AppLocalizations s) {
-    final entries = <(String, String)>[
-      (s.vjwFlightNumber, _values.flightNumber),
-      (s.vjwArrivalDate, _values.arrivalDate),
-      (s.vjwStayName, _values.stayName),
-      (s.vjwPostalCode, _values.stayPostalCode),
-      (s.vjwPrefecture, _values.stayPrefecture),
-      (s.vjwCity, _values.stayCity),
-      (s.vjwAddress, _values.stayAddressLine),
-      (s.vjwBuilding, _values.stayBuilding),
-      (s.vjwStayPhone, _values.stayPhone),
-      (s.vjwContactPhone, _values.contactPhone),
-    ].where((entry) => entry.$2.trim().isNotEmpty).toList();
-
-    return Card(
-      color: Colors.white,
-      elevation: 0,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          children: entries
-              .map((entry) => Padding(
-                    padding: const EdgeInsets.symmetric(vertical: 7),
-                    child: Row(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Expanded(
-                            child: Text(entry.$1,
-                                style: const TextStyle(
-                                    color: Color(0xff7b827d), fontSize: 13))),
-                        const SizedBox(width: 16),
-                        Flexible(
-                            child: Text(entry.$2,
-                                textAlign: TextAlign.right,
-                                style: const TextStyle(
-                                    color: Color(0xff17231f),
-                                    fontSize: 14,
-                                    fontWeight: FontWeight.w700))),
-                      ],
-                    ),
-                  ))
-              .toList(),
-        ),
-      ),
-    );
-  }
 
   Widget _vjwBrandBanner() => Image.asset(
         'assets/images/vjw_prepare_banner_transparent.png',

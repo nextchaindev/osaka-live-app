@@ -238,9 +238,6 @@ class AppLocalizationsKo extends AppLocalizations {
   String get vjwOpen => 'Visit Japan Web 열기';
 
   @override
-  String get vjwEdit => '저장된 정보 수정';
-
-  @override
   String get vjwDeleteAll => '저장된 값 모두 삭제';
 
   @override

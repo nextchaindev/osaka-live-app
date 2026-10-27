@@ -246,9 +246,6 @@ class AppLocalizationsEn extends AppLocalizations {
   String get vjwOpen => 'Open Visit Japan Web';
 
   @override
-  String get vjwEdit => 'Edit saved values';
-
-  @override
   String get vjwDeleteAll => 'Delete all saved values';
 
   @override
