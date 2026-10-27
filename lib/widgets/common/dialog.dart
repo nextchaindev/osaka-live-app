@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:osaka_app/l10n/generated/app_localizations.dart';
 
 class AppDialog {
   Future<bool> showPermissionDialog(
@@ -7,6 +8,7 @@ class AppDialog {
     required String message,
     required IconData icon,
   }) async {
+    final strings = AppLocalizations.of(context)!;
     return await showDialog<bool>(
           context: context,
           barrierDismissible: true,
@@ -59,7 +61,7 @@ class AppDialog {
                     height: 48,
                     child: FilledButton(
                       onPressed: () => Navigator.of(dialogContext).pop(true),
-                      child: const Text('설정으로 이동'),
+                      child: Text(strings.openSettings),
                     ),
                   ),
                   const SizedBox(height: 4),
@@ -68,7 +70,7 @@ class AppDialog {
                     height: 44,
                     child: TextButton(
                       onPressed: () => Navigator.of(dialogContext).pop(false),
-                      child: const Text('나중에'),
+                      child: Text(strings.later),
                     ),
                   ),
                 ],

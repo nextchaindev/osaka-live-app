@@ -7,6 +7,38 @@ import 'package:osaka_app/config/env_config.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
+/// Sets locale cookies before the first WebView navigation and whenever the
+/// user or device locale changes.
+Future<void> writeLocaleCookies({
+  required String webViewUrl,
+  required String locale,
+  required String source,
+}) async {
+  final url = WebUri.uri(Uri.parse(webViewUrl));
+  final expiresDate =
+      DateTime.now().add(const Duration(days: 365)).millisecondsSinceEpoch;
+  final secure = Uri.parse(webViewUrl).scheme == 'https';
+  final manager = CookieManager.instance();
+  await manager.setCookie(
+    url: url,
+    name: 'locale',
+    value: locale,
+    path: '/',
+    expiresDate: expiresDate,
+    isSecure: secure,
+    isHttpOnly: false,
+  );
+  await manager.setCookie(
+    url: url,
+    name: 'locale_source',
+    value: source,
+    path: '/',
+    expiresDate: expiresDate,
+    isSecure: secure,
+    isHttpOnly: false,
+  );
+}
+
 /// Removes cookies persisted by older app versions in plaintext preferences.
 Future<void> clearLegacyStoredCookies() async {
   final preferences = await SharedPreferences.getInstance();

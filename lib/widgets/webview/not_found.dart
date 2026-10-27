@@ -2,8 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_inappwebview/flutter_inappwebview.dart';
 // ignore: implementation_imports
 import 'package:provider/src/provider.dart';
-import '../../helpers/Strings.dart';
 import '../../provider/navigation_bar_provider.dart';
+import 'package:osaka_app/l10n/generated/app_localizations.dart';
 
 class NotFound extends StatefulWidget {
   final InAppWebViewController webViewController;
@@ -51,6 +51,7 @@ class _NotFoundState extends State<NotFound> {
 
   @override
   Widget build(BuildContext context) {
+    final strings = AppLocalizations.of(context)!;
     return Container(
       color: Theme.of(context).scaffoldBackgroundColor,
       alignment: Alignment.center,
@@ -59,7 +60,7 @@ class _NotFoundState extends State<NotFound> {
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Text(CustomStrings.pageNotFound1,
+          Text(strings.pageError,
               style: Theme.of(context)
                   .textTheme
                   .titleLarge!
@@ -67,7 +68,7 @@ class _NotFoundState extends State<NotFound> {
           const SizedBox(
             height: 5,
           ),
-          Text(CustomStrings.pageNotFound2,
+          Text(strings.pageNotFound,
               style: Theme.of(context)
                   .textTheme
                   .titleMedium!
@@ -97,7 +98,7 @@ class _NotFoundState extends State<NotFound> {
                       });
                     });
                   },
-                  child: const Text('새로고침'),
+                  child: Text(strings.refresh),
                 ),
         ],
       ),

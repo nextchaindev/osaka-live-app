@@ -1,11 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:osaka_app/l10n/generated/app_localizations.dart';
 
 class SplashOverlay extends StatelessWidget {
   const SplashOverlay({super.key});
 
   @override
   Widget build(BuildContext context) {
+    final strings = AppLocalizations.of(context)!;
     return AnnotatedRegion<SystemUiOverlayStyle>(
       value: const SystemUiOverlayStyle(
         statusBarColor: Colors.transparent,
@@ -40,8 +42,8 @@ class SplashOverlay extends StatelessWidget {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    const Text(
-                      '오사카를 만나보세요.\n지금, 라이브로.',
+                    Text(
+                      strings.splashHeadline,
                       style: TextStyle(
                         fontSize: 34,
                         height: 1.08,
@@ -62,8 +64,8 @@ class SplashOverlay extends StatelessWidget {
                           ],
                         ).createShader(bounds);
                       },
-                      child: const Text(
-                        '이 순간에 함께하세요.',
+                      child: Text(
+                        strings.splashSubhead,
                         style: TextStyle(
                           fontSize: 34,
                           height: 1.08,
@@ -76,9 +78,7 @@ class SplashOverlay extends StatelessWidget {
                     ),
                     const SizedBox(height: 18),
                     Text(
-                      '실시간 영상, 진짜 사람들, 실제 장소.\n'
-                      '현장의 생생한 정보를 확인하고\n'
-                      '더 나은 계획을 세워보세요.',
+                      strings.splashDescription,
                       style: TextStyle(
                         fontSize: 16,
                         height: 1.35,

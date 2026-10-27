@@ -37,7 +37,7 @@
 		97C146FE1CF9000F007C117D /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 97C146FD1CF9000F007C117D /* Assets.xcassets */; };
 		97C147011CF9000F007C117D /* LaunchScreen.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = 97C146FF1CF9000F007C117D /* LaunchScreen.storyboard */; };
 		A1F0B1122F1A000100000001 /* InfoPlist.strings in Resources */ = {isa = PBXBuildFile; fileRef = A1F0B1102F1A000100000001 /* InfoPlist.strings */; };
-		A1F0B1132F1A000100000001 /* InfoPlist.strings in Resources */ = {isa = PBXBuildFile; fileRef = A1F0B1102F1A000100000001 /* InfoPlist.strings */; };
+		A1F0B1132F1A000100000001 /* Dev InfoPlist.strings in Resources */ = {isa = PBXBuildFile; fileRef = A1F0B11B2F1A000100000001 /* Dev InfoPlist.strings */; };
 		A1F0B1142F1A000100000001 /* InfoPlist.strings in Resources */ = {isa = PBXBuildFile; fileRef = A1F0B1102F1A000100000001 /* InfoPlist.strings */; };
 		A1F0B1152F1A000100000001 /* InfoPlist.strings in Resources */ = {isa = PBXBuildFile; fileRef = A1F0B1102F1A000100000001 /* InfoPlist.strings */; };
 		B4404B647BBA5C9A8A6E97A4 /* Pods_Runner.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 816365B882D86776FC83EB7B /* Pods_Runner.framework */; };
@@ -151,7 +151,12 @@
 		97C147001CF9000F007C117D /* Base */ = {isa = PBXFileReference; lastKnownFileType = file.storyboard; name = Base; path = Base.lproj/LaunchScreen.storyboard; sourceTree = "<group>"; };
 		97C147021CF9000F007C117D /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
 		9FE5480F1A92BEC4371D65CB /* Pods-Runner-prod.release-dev.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-Runner-prod.release-dev.xcconfig"; path = "Target Support Files/Pods-Runner-prod/Pods-Runner-prod.release-dev.xcconfig"; sourceTree = "<group>"; };
+		A1F0B1162F1A000100000001 /* en */ = {isa = PBXFileReference; lastKnownFileType = text.plist.strings; name = en; path = en.lproj/InfoPlist.strings; sourceTree = "<group>"; };
 		A1F0B1112F1A000100000001 /* ko */ = {isa = PBXFileReference; lastKnownFileType = text.plist.strings; name = ko; path = ko.lproj/InfoPlist.strings; sourceTree = "<group>"; };
+		A1F0B1172F1A000100000001 /* ja */ = {isa = PBXFileReference; lastKnownFileType = text.plist.strings; name = ja; path = ja.lproj/InfoPlist.strings; sourceTree = "<group>"; };
+		A1F0B1182F1A000100000001 /* en */ = {isa = PBXFileReference; lastKnownFileType = text.plist.strings; name = en; path = dev/en.lproj/InfoPlist.strings; sourceTree = "<group>"; };
+		A1F0B1192F1A000100000001 /* ko */ = {isa = PBXFileReference; lastKnownFileType = text.plist.strings; name = ko; path = dev/ko.lproj/InfoPlist.strings; sourceTree = "<group>"; };
+		A1F0B11A2F1A000100000001 /* ja */ = {isa = PBXFileReference; lastKnownFileType = text.plist.strings; name = ja; path = dev/ja.lproj/InfoPlist.strings; sourceTree = "<group>"; };
 		A333F746291CA26EC6A522D9 /* Pods-Runner-prod.debug-prod.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-Runner-prod.debug-prod.xcconfig"; path = "Target Support Files/Pods-Runner-prod/Pods-Runner-prod.debug-prod.xcconfig"; sourceTree = "<group>"; };
 		A3A683A40A5932BEB42C3DAE /* Pods-Runner-dev.debug-dev.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-Runner-dev.debug-dev.xcconfig"; path = "Target Support Files/Pods-Runner-dev/Pods-Runner-dev.debug-dev.xcconfig"; sourceTree = "<group>"; };
 		CA881A3D2DA32FE407038C2F /* Pods-Runner-dev.release-prod.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-Runner-dev.release-prod.xcconfig"; path = "Target Support Files/Pods-Runner-dev/Pods-Runner-dev.release-prod.xcconfig"; sourceTree = "<group>"; };
@@ -380,6 +385,7 @@
 				04615E9D2EFCF48800AD456C /* Prod-Info.plist */,
 				04453DC12EE6793B003D4B9D /* Staging-Info.plist */,
 				A1F0B1102F1A000100000001 /* InfoPlist.strings */,
+				A1F0B11B2F1A000100000001 /* Dev InfoPlist.strings */,
 			);
 			path = Runner;
 			sourceTree = "<group>";
@@ -536,6 +542,7 @@
 				en,
 				Base,
 				ko,
+				ja,
 			);
 			mainGroup = 97C146E51CF9000F007C117D;
 			preferredProjectObjectVersion = 77;
@@ -561,7 +568,7 @@
 				04453D9C2EE67927003D4B9D /* AppFrameworkInfo.plist in Resources */,
 				04453D9D2EE67927003D4B9D /* Assets.xcassets in Resources */,
 				04453D9E2EE67927003D4B9D /* Main.storyboard in Resources */,
-				A1F0B1132F1A000100000001 /* InfoPlist.strings in Resources */,
+				A1F0B1132F1A000100000001 /* Dev InfoPlist.strings in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -1074,7 +1081,19 @@
 		A1F0B1102F1A000100000001 /* InfoPlist.strings */ = {
 			isa = PBXVariantGroup;
 			children = (
+				A1F0B1162F1A000100000001 /* en */,
 				A1F0B1112F1A000100000001 /* ko */,
+				A1F0B1172F1A000100000001 /* ja */,
+			);
+			name = InfoPlist.strings;
+			sourceTree = "<group>";
+		};
+		A1F0B11B2F1A000100000001 /* Dev InfoPlist.strings */ = {
+			isa = PBXVariantGroup;
+			children = (
+				A1F0B1182F1A000100000001 /* en */,
+				A1F0B1192F1A000100000001 /* ko */,
+				A1F0B11A2F1A000100000001 /* ja */,
 			);
 			name = InfoPlist.strings;
 			sourceTree = "<group>";

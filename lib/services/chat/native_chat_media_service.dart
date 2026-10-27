@@ -14,8 +14,10 @@ import 'package:image_picker/image_picker.dart';
 import 'package:light_compressor_v2/light_compressor_v2.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:osaka_app/screens/camera/custom_camera_screen.dart';
+import 'package:osaka_app/l10n/generated/app_localizations.dart';
 import 'package:osaka_app/services/analytics/analytics_service.dart';
 import 'package:osaka_app/services/permission/permission_service.dart';
+import 'package:osaka_app/widgets/common/dialog.dart';
 
 class NativeChatMediaService {
   NativeChatMediaService._();
@@ -376,10 +378,12 @@ class NativeChatMediaService {
       barrierColor: Colors.black.withValues(
         alpha: Platform.isAndroid ? 0.28 : 0.18,
       ),
-      builder: (_) => _ChatMediaPickerSheet(
+      builder: (sheetContext) => _ChatMediaPickerSheet(
         includeVideo: false,
-        title: purpose == NativeImagePurpose.avatar ? '프로필 사진' : '대표 사진',
-        description: '사진을 선택해 주세요',
+        title: purpose == NativeImagePurpose.avatar
+            ? AppLocalizations.of(sheetContext)!.profilePhoto
+            : AppLocalizations.of(sheetContext)!.coverPhoto,
+        description: AppLocalizations.of(sheetContext)!.choosePhoto,
       ),
     );
   }
@@ -395,9 +399,10 @@ class NativeChatMediaService {
       );
     }
 
-    final granted = await PermissionService().requestCameraPermission();
-    if (!granted) {
-      throw const _NativeChatMediaException('camera_permission_denied');
+    if (!await _ensureCameraPermission(context, CustomCameraMode.photo)) {
+      throw const _NativeChatMediaException(
+        'camera_permission_denied_dialog_shown',
+      );
     }
     if (!context.mounted) {
       throw const _NativeChatMediaException('view_unavailable');
@@ -564,6 +569,14 @@ class NativeChatMediaService {
     BuildContext context,
     CustomCameraMode mode,
   ) async {
+    if (!await _ensureCameraPermission(context, mode)) {
+      throw const _NativeChatMediaException(
+        'camera_permission_denied_dialog_shown',
+      );
+    }
+    if (!context.mounted) {
+      throw const _NativeChatMediaException('view_unavailable');
+    }
     final result = await Navigator.of(context, rootNavigator: true)
         .push<CustomCameraCaptureResult>(
       MaterialPageRoute(
@@ -575,6 +588,31 @@ class NativeChatMediaService {
       ),
     );
     return result == null ? [] : [result.file];
+  }
+
+  Future<bool> _ensureCameraPermission(
+    BuildContext context,
+    CustomCameraMode mode,
+  ) async {
+    final permissionService = PermissionService();
+    final granted = mode == CustomCameraMode.video
+        ? await permissionService.requestCameraAndMicrophonePermission()
+        : await permissionService.requestCameraPermission();
+    if (granted || !context.mounted) {
+      return granted;
+    }
+
+    final strings = AppLocalizations.of(context)!;
+    final openSettings = await AppDialog().showPermissionDialog(
+      context,
+      title: strings.cameraPermissionTitle,
+      message: strings.cameraPermissionMessage,
+      icon: Icons.videocam_outlined,
+    );
+    if (openSettings) {
+      await permissionService.openAppSettings();
+    }
+    return false;
   }
 
   Future<_PreparedChatMedia> _prepareMedia(
@@ -857,18 +895,19 @@ enum _ChatMediaSource { library, cameraImage, cameraVideo }
 class _ChatMediaPickerSheet extends StatelessWidget {
   const _ChatMediaPickerSheet({
     this.includeVideo = true,
-    this.title = '미디어 첨부',
-    this.description = '사진 또는 동영상을 선택해 주세요',
+    this.title,
+    this.description,
   });
 
   static const _brandColor = Color(0xFFFF4038);
 
   final bool includeVideo;
-  final String title;
-  final String description;
+  final String? title;
+  final String? description;
 
   @override
   Widget build(BuildContext context) {
+    final strings = AppLocalizations.of(context)!;
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
     final isAndroid = Platform.isAndroid;
@@ -934,7 +973,7 @@ class _ChatMediaPickerSheet extends StatelessWidget {
                   ),
                   const SizedBox(height: 22),
                   Text(
-                    title,
+                    title ?? strings.chooseMedia,
                     style: TextStyle(
                       color: primaryText,
                       fontSize: 21,
@@ -945,7 +984,7 @@ class _ChatMediaPickerSheet extends StatelessWidget {
                   ),
                   const SizedBox(height: 7),
                   Text(
-                    description,
+                    description ?? strings.chooseMedia,
                     style: TextStyle(
                       color: secondaryText,
                       fontSize: 14,
@@ -960,7 +999,7 @@ class _ChatMediaPickerSheet extends StatelessWidget {
                       Expanded(
                         child: _ChatMediaSourceButton(
                           icon: Icons.photo_library_rounded,
-                          label: '앨범',
+                          label: AppLocalizations.of(context)!.album,
                           iconColor: const Color(0xFF7657E8),
                           iconBackground: const Color(0xFFEDE8FF),
                           cardColor: cardColor,
@@ -976,7 +1015,7 @@ class _ChatMediaPickerSheet extends StatelessWidget {
                       Expanded(
                         child: _ChatMediaSourceButton(
                           icon: Icons.photo_camera_rounded,
-                          label: '사진',
+                          label: AppLocalizations.of(context)!.photo,
                           iconColor: _brandColor,
                           iconBackground: const Color(0xFFFFE9E7),
                           cardColor: cardColor,
@@ -993,7 +1032,7 @@ class _ChatMediaPickerSheet extends StatelessWidget {
                         Expanded(
                           child: _ChatMediaSourceButton(
                             icon: Icons.videocam_rounded,
-                            label: '동영상',
+                            label: AppLocalizations.of(context)!.video,
                             iconColor: const Color(0xFF2F80ED),
                             iconBackground: const Color(0xFFE5F0FF),
                             cardColor: cardColor,
@@ -1025,7 +1064,7 @@ class _ChatMediaPickerSheet extends StatelessWidget {
                           fontWeight: FontWeight.w700,
                         ),
                       ),
-                      child: const Text('취소'),
+                      child: Text(AppLocalizations.of(context)!.cancel),
                     ),
                   ),
                 ],

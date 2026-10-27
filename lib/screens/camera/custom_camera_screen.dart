@@ -8,6 +8,7 @@ import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 import 'package:osaka_app/provider/webview_provider.dart';
 import 'package:video_player/video_player.dart';
+import 'package:osaka_app/l10n/generated/app_localizations.dart';
 
 enum CustomCameraMode { video, photo }
 
@@ -122,7 +123,7 @@ class _CustomCameraScreenState extends State<CustomCameraScreen>
 
         setState(() {
           _isInitializing = false;
-          _errorMessage = 'No camera found on this device.';
+          _errorMessage = AppLocalizations.of(context)!.cameraNotFound;
         });
         return;
       }
@@ -139,7 +140,7 @@ class _CustomCameraScreenState extends State<CustomCameraScreen>
       }
 
       setState(() {
-        _errorMessage = 'Unable to start camera. Please try again.';
+        _errorMessage = AppLocalizations.of(context)!.cameraStartError;
       });
     } finally {
       if (mounted) {
@@ -259,7 +260,7 @@ class _CustomCameraScreenState extends State<CustomCameraScreen>
       setState(() {
         _isRecording = false;
         _isRecordingPaused = false;
-        _errorMessage = 'Unable to start recording.';
+        _errorMessage = AppLocalizations.of(context)!.recordStartError;
       });
     }
   }
@@ -321,7 +322,7 @@ class _CustomCameraScreenState extends State<CustomCameraScreen>
       }
       setState(() {
         _isFinishingRecording = false;
-        _errorMessage = 'Unable to pause recording.';
+        _errorMessage = AppLocalizations.of(context)!.recordPauseError;
       });
     }
   }
@@ -359,7 +360,7 @@ class _CustomCameraScreenState extends State<CustomCameraScreen>
       }
       setState(() {
         _isFinishingRecording = false;
-        _errorMessage = 'Unable to resume recording.';
+        _errorMessage = AppLocalizations.of(context)!.recordResumeError;
       });
     }
   }
@@ -408,7 +409,7 @@ class _CustomCameraScreenState extends State<CustomCameraScreen>
       }
       setState(() {
         _isFinishingRecording = false;
-        _errorMessage = 'Unable to stop recording.';
+        _errorMessage = AppLocalizations.of(context)!.recordStopError;
       });
       return null;
     }
@@ -464,7 +465,7 @@ class _CustomCameraScreenState extends State<CustomCameraScreen>
       }
       setState(() {
         _isTakingPhoto = false;
-        _errorMessage = 'Unable to take photo. Please try again.';
+        _errorMessage = AppLocalizations.of(context)!.takePhotoError;
       });
     }
   }
@@ -597,7 +598,7 @@ class _CustomCameraScreenState extends State<CustomCameraScreen>
       if (mounted) {
         setState(() {
           _isTransferringVideo = false;
-          _errorMessage = 'Unable to send video. Please try again.';
+          _errorMessage = AppLocalizations.of(context)!.sendVideoError;
         });
       }
       return;
@@ -790,6 +791,7 @@ class _CustomCameraScreenState extends State<CustomCameraScreen>
   }
 
   Widget _buildBottomControls() {
+    final strings = AppLocalizations.of(context)!;
     if (_recordedVideo != null || _capturedPhoto != null) {
       return Padding(
         padding: EdgeInsets.fromLTRB(
@@ -804,7 +806,7 @@ class _CustomCameraScreenState extends State<CustomCameraScreen>
             children: [
               Expanded(
                 child: _ActionButton(
-                  label: '다시 찍기',
+                  label: strings.retake,
                   backgroundColor: const Color(0xFFFFF2F1),
                   foregroundColor: const Color(0xFFFF4C3A),
                   onTap: _retake,
@@ -814,7 +816,7 @@ class _CustomCameraScreenState extends State<CustomCameraScreen>
               const SizedBox(width: 8),
               Expanded(
                 child: _ActionButton(
-                  label: '다음',
+                  label: strings.next,
                   backgroundColor: const Color(0xFFFF4C3A),
                   foregroundColor: Colors.white,
                   onTap: _confirmCapture,
@@ -840,12 +842,12 @@ class _CustomCameraScreenState extends State<CustomCameraScreen>
         children: [
           Text(
             widget.mode == CustomCameraMode.photo
-                ? '사진을 촬영해 주세요'
+                ? strings.takePhoto
                 : _isRecording
                     ? _formatDuration(_recordingDuration)
                     : widget.returnCaptureResult
-                        ? '최대 30초까지 촬영할 수 있어요'
-                        : '5-30초 라이브 영상만 허용',
+                        ? strings.maxVideoDuration
+                        : strings.liveVideoOnly,
             style: TextStyle(
               color: Colors.white.withValues(alpha: 0.92),
               fontSize: _isRecording ? 20 : 12,
@@ -899,9 +901,9 @@ class _CustomCameraScreenState extends State<CustomCameraScreen>
               child: Text(
                 widget.returnCaptureResult
                     ? widget.mode == CustomCameraMode.photo
-                        ? '채팅에 보낼 사진을 촬영하세요'
-                        : '채팅에 보낼 동영상을 촬영하세요'
-                    : '🔒 갤러리 업로드 불가 · 현장 라이브만',
+                        ? strings.chatPhotoPrompt
+                        : strings.chatVideoPrompt
+                    : strings.liveOnlyPrompt,
                 style: TextStyle(
                   color: Colors.white,
                   fontSize: 12,
@@ -1199,8 +1201,8 @@ class _GpsPill extends StatelessWidget {
           ),
         ],
       ),
-      child: const Text(
-        '통화 리뷰 · GPS 인증중',
+      child: Text(
+        AppLocalizations.of(context)!.callReviewGps,
         style: TextStyle(
           color: Colors.white,
           fontSize: 12,
@@ -1226,7 +1228,9 @@ class _CameraModePill extends StatelessWidget {
         border: Border.all(color: Colors.white.withValues(alpha: 0.1)),
       ),
       child: Text(
-        mode == CustomCameraMode.photo ? '사진' : '동영상 · 최대 30초',
+        mode == CustomCameraMode.photo
+            ? AppLocalizations.of(context)!.photoMode
+            : AppLocalizations.of(context)!.videoMode,
         style: const TextStyle(
           color: Colors.white,
           fontSize: 12,

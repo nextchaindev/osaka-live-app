@@ -1,0 +1,8 @@
+CFBundleDisplayName = "大阪ライブ";
+CFBundleName = "大阪ライブ";
+"NSCameraUsageDescription" = "チャット、ライブ配信、プロフィール写真、サポート用の写真や動画を撮影するためにカメラを使用します。";
+"NSMicrophoneUsageDescription" = "チャットやライブ動画の音声を録音するためにマイクを使用します。";
+"NSLocationWhenInUseUsageDescription" = "近くの大阪ライブコンテンツを表示し、地図を更新するために位置情報を使用します。";
+"NSLocationAlwaysAndWhenInUseUsageDescription" = "アプリの使用中に近くのライブコンテンツを表示し、撮影場所を確認するために位置情報を使用します。";
+"NSPhotoLibraryUsageDescription" = "チャット、プロフィール、サポート用の写真や動画を選ぶために写真ライブラリにアクセスします。";
+"NSLocalNetworkUsageDescription" = "開発とデバッグのためにローカルネットワークを使用します。";

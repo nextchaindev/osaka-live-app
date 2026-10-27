@@ -15,6 +15,7 @@ import 'package:osaka_app/services/js/js_communication_service.dart';
 import 'package:osaka_app/provider/download_provider.dart';
 import 'package:osaka_app/services/permission/permission_service.dart';
 import 'package:osaka_app/widgets/common/dialog.dart';
+import 'package:osaka_app/l10n/generated/app_localizations.dart';
 import 'package:osaka_app/widgets/webview/webview_window.dart';
 
 /// Mixin for WebView lifecycle event handlers
@@ -431,8 +432,8 @@ mixin WebViewLifecycleMixin<T extends StatefulWidget> on State<T> {
       }
       final openSettings = await appDialog.showPermissionDialog(
         context,
-        title: '저장 공간 권한이 필요합니다',
-        message: '파일을 다운로드하려면 저장 공간 권한이 필요합니다.\n\n설정에서 권한을 허용해 주세요.',
+        title: AppLocalizations.of(context)!.storagePermissionTitle,
+        message: AppLocalizations.of(context)!.storagePermissionMessage,
         icon: Icons.download_outlined,
       );
       if (openSettings && mounted) {
@@ -458,6 +459,21 @@ mixin WebViewLifecycleMixin<T extends StatefulWidget> on State<T> {
     required Function(bool allowClosePopUp) setAllowClosePopUp,
   }) async {
     final webUri = createWindowRequest.request.url;
+
+    // Embedded third-party content (for example Instagram, TikTok, and
+    // YouTube) commonly opens its outbound actions in a new window. Those
+    // windows do not pass through shouldOverrideUrlLoading, so apply the same
+    // origin policy here: leave the WebView and open third-party web URLs in
+    // the device's browser.
+    if (webUri != null &&
+        (webUri.isScheme('http') || webUri.isScheme('https')) &&
+        !WebViewHelper.isTrustedWebUri(
+          webUri.uriValue,
+          rootUrl: _webViewUrl,
+        )) {
+      await launchUrl(webUri.uriValue, mode: LaunchMode.externalApplication);
+      return false;
+    }
 
     // Check for file extensions
     if (webUri.toString().contains(

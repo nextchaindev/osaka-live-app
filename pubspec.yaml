@@ -1,6 +1,6 @@
 name: osaka_app
 description: A new Flutter project.
-version: 1.0.4+3
+version: 1.0.7+1
 
 environment:
   sdk: ">=3.2.0 <4.0.0"
@@ -114,6 +114,7 @@ flutter_native_splash:
     branding: assets/images/splash_brand.png
 
 flutter:
+  generate: true
   uses-material-design: true
   assets:
     - assets/icons/

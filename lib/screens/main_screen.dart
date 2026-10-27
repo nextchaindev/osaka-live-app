@@ -5,6 +5,7 @@ import 'package:osaka_app/config/env_config.dart';
 import 'package:osaka_app/constants/common.dart';
 import 'package:osaka_app/config/app_remote_config.dart';
 import 'package:osaka_app/helpers/themes.dart';
+import 'package:osaka_app/l10n/generated/app_localizations.dart';
 import 'package:osaka_app/helpers/icons.dart';
 import 'package:osaka_app/helpers/webview_helper.dart';
 import 'package:osaka_app/provider/webview_provider.dart';
@@ -225,6 +226,7 @@ class _MyHomePageState extends State<MyHomePage>
   }
 
   void _showForceUpdateDialog() {
+    final strings = AppLocalizations.of(context)!;
     showDialog(
       context: context,
       barrierDismissible: false,
@@ -259,8 +261,8 @@ class _MyHomePageState extends State<MyHomePage>
                         size: 48, color: Colors.white),
                   ),
                   const SizedBox(height: 16),
-                  const Text(
-                    '업데이트가 필요합니다',
+                  Text(
+                    strings.updateRequired,
                     style: TextStyle(
                         fontSize: 20,
                         fontWeight: FontWeight.w700,
@@ -268,8 +270,8 @@ class _MyHomePageState extends State<MyHomePage>
                     textAlign: TextAlign.center,
                   ),
                   const SizedBox(height: 8),
-                  const Text(
-                    '최신 버전으로 업데이트하고\n더 나은 경험을 누려보세요.',
+                  Text(
+                    strings.updateMessage,
                     style: TextStyle(
                         fontSize: 14, color: Colors.white70, height: 1.4),
                     textAlign: TextAlign.center,
@@ -302,16 +304,16 @@ class _MyHomePageState extends State<MyHomePage>
                               mode: LaunchMode.externalApplication);
                         }
                       },
-                      child: const Text(
-                        '업데이트하기',
+                      child: Text(
+                        strings.updateNow,
                         style: TextStyle(
                             fontSize: 16, fontWeight: FontWeight.w700),
                       ),
                     ),
                   ),
                   const SizedBox(height: 4),
-                  const Text(
-                    '계속 사용하려면 업데이트가 필요합니다.',
+                  Text(
+                    strings.updateContinueMessage,
                     style: TextStyle(fontSize: 12, color: Colors.white70),
                   ),
                 ],
@@ -498,14 +500,14 @@ class _MyHomePageState extends State<MyHomePage>
                     _splashHideTimer?.cancel();
                     _shouldHideSplash = false;
                   }
-                  final disableTopSafeArea = routeNoSafeArea.any((route) =>
-                          webviewProvider.currentUrl.contains(route)) ||
-                      WebViewHelper.isWebViewRoot(
-                        webviewProvider.currentUrl,
-                        rootUrl: EnvConfig.instance.webviewUrl,
-                      );
-                  final disableBottomSafeArea = routeNoBottomSafeArea.any(
-                      (route) => webviewProvider.currentUrl.contains(route));
+                  // final disableTopSafeArea = routeNoSafeArea.any((route) =>
+                  //         webviewProvider.currentUrl.contains(route)) ||
+                  //     WebViewHelper.isWebViewRoot(
+                  //       webviewProvider.currentUrl,
+                  //       rootUrl: EnvConfig.instance.webviewUrl,
+                  //     );
+                  // final disableBottomSafeArea = routeNoBottomSafeArea.any(
+                  //     (route) => webviewProvider.currentUrl.contains(route));
                   return Stack(
                     children: [
                       Opacity(
@@ -513,7 +515,7 @@ class _MyHomePageState extends State<MyHomePage>
                         child: Container(
                           color: Colors.white,
                           child: SafeArea(
-                            top: !disableTopSafeArea,
+                            top: false,
                             bottom: false,
                             child: Navigator(
                               key: _navigatorKeys[0],
@@ -661,6 +663,7 @@ class _MyHomePageState extends State<MyHomePage>
   }
 
   void _showExitConfirmDialog() {
+    final strings = AppLocalizations.of(context)!;
     if (_isExitDialogVisible) {
       unawaited(_analyticsService.logBackNavigation(
         action: 'app_exit_on_second_back_with_dialog',
@@ -693,7 +696,7 @@ class _MyHomePageState extends State<MyHomePage>
                   height: 24,
                 ),
                 Text(
-                  '앱을 종료 하시겠습니까?',
+                  strings.exitConfirm,
                   textAlign: TextAlign.center,
                   style: TextStyle(fontSize: 16),
                 ),
@@ -719,8 +722,8 @@ class _MyHomePageState extends State<MyHomePage>
                       ),
                       minimumSize: Size(100, 40),
                     ),
-                    child: const Text(
-                      '아니요',
+                    child: Text(
+                      strings.no,
                       style: TextStyle(
                           fontSize: 16,
                           color: Color(0xff1F1F1F),
@@ -748,8 +751,8 @@ class _MyHomePageState extends State<MyHomePage>
                       ),
                       minimumSize: Size(100, 40),
                     ),
-                    child: const Text(
-                      '네',
+                    child: Text(
+                      strings.yes,
                       style: TextStyle(
                           fontSize: 16,
                           color: Colors.white,

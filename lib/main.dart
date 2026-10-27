@@ -10,6 +10,8 @@ import 'package:osaka_app/config/env_config.dart';
 import 'package:osaka_app/config/firebase_config.dart';
 import 'package:osaka_app/provider/app_global_key.dart';
 import 'package:osaka_app/provider/webview_provider.dart';
+import 'package:osaka_app/provider/locale_provider.dart';
+import 'package:osaka_app/l10n/generated/app_localizations.dart';
 
 import 'provider/navigation_bar_provider.dart';
 import 'constants/common.dart';
@@ -44,10 +46,19 @@ Future<String> _resolveEnvironment() async {
 
 Future main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  final environment = await _resolveEnvironment();
+  await EnvConfig.initialize(environment);
+  await clearLegacyStoredCookies();
+
+  late LocaleProvider localeProvider;
   try {
-    final environment = await _resolveEnvironment();
-    await EnvConfig.initialize(environment);
-    await clearLegacyStoredCookies();
+    localeProvider = await LocaleProvider.initialize();
+  } on Exception catch (e) {
+    print(e);
+    localeProvider = await LocaleProvider.initializeFallback();
+  }
+
+  try {
     await FirebaseConfig.initializeFirebaseApp(environment);
     await FirebaseConfig.instance.captureInitialMessage();
 
@@ -63,6 +74,7 @@ Future main() async {
 
   return runApp(MultiProvider(
     providers: [
+      ChangeNotifierProvider<LocaleProvider>.value(value: localeProvider),
       ChangeNotifierProvider<NavigationBarProvider>(
           create: (_) => NavigationBarProvider()),
       ChangeNotifierProvider(create: (context) => WebViewProvider()),
@@ -82,9 +94,15 @@ class MyApp extends StatefulWidget {
 }
 
 class _MyAppState extends State<MyApp> {
+  LocaleProvider? _localeProvider;
+  String? _lastLocale;
+
   @override
   void initState() {
     super.initState();
+    _localeProvider = context.read<LocaleProvider>();
+    _lastLocale = _localeProvider!.effectiveLocale;
+    _localeProvider!.addListener(_handleLocaleChanged);
     try {
       FirebaseConfig.instance.initialize(context);
     } on Exception catch (e) {
@@ -92,8 +110,24 @@ class _MyAppState extends State<MyApp> {
     }
   }
 
+  void _handleLocaleChanged() {
+    final provider = _localeProvider;
+    if (provider == null) return;
+    final locale = provider.effectiveLocale;
+    final shouldReloadWebView =
+        locale != _lastLocale && provider.localeSource == 'device';
+    _lastLocale = locale;
+    if (shouldReloadWebView) {
+      final controller = context.read<WebViewProvider>().controller;
+      if (controller != null) {
+        unawaited(controller.reload());
+      }
+    }
+  }
+
   @override
   void dispose() {
+    _localeProvider?.removeListener(_handleLocaleChanged);
     super.dispose();
   }
 
@@ -103,7 +137,9 @@ class _MyAppState extends State<MyApp> {
       DeviceOrientation.portraitUp,
       DeviceOrientation.portraitDown,
     ]);
+    final localeProvider = context.watch<LocaleProvider>();
     return MaterialApp(
+        locale: localeProvider.locale,
         onGenerateTitle: (BuildContext context) {
           // Get device locale and return appropriate app name
           final locale = Localizations.maybeLocaleOf(context);
@@ -112,6 +148,7 @@ class _MyAppState extends State<MyApp> {
         // Provides framework strings and semantics for Material, Cupertino,
         // and general widgets in every supported locale below.
         localizationsDelegates: const [
+          AppLocalizations.delegate,
           GlobalMaterialLocalizations.delegate,
           GlobalCupertinoLocalizations.delegate,
           GlobalWidgetsLocalizations.delegate,
@@ -119,18 +156,8 @@ class _MyAppState extends State<MyApp> {
         supportedLocales: const [
           Locale('en'),
           Locale('ko'),
+          Locale('ja'),
         ],
-        // Handle locale resolution
-        localeResolutionCallback: (locale, supportedLocales) {
-          // Check if the device locale is supported
-          for (var supportedLocale in supportedLocales) {
-            if (supportedLocale.languageCode == locale?.languageCode) {
-              return supportedLocale;
-            }
-          }
-          // Default to English if not supported
-          return supportedLocales.first;
-        },
         debugShowCheckedModeBanner: false,
         theme: AppThemes.lightTheme,
         navigatorKey: navigatorKey,
