@@ -241,9 +241,6 @@ class AppLocalizationsJa extends AppLocalizations {
   String get vjwDeleteAll => '保存した値をすべて削除';
 
   @override
-  String get vjwEdit => '値を編集';
-
-  @override
   String get vjwInjected => '入力しました';
 
   @override
