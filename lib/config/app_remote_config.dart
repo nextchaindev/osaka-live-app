@@ -24,6 +24,7 @@ class RemoteConfigManager {
   }
 
   String getString(String key) {
+    if (!_initialized) return '';
     return _remoteConfig.getString(key);
   }
 }
