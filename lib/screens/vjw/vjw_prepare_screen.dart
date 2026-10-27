@@ -154,50 +154,10 @@ class _VjwPrepareScreenState extends State<VjwPrepareScreen> {
     super.dispose();
   }
 
-  Future<void> _pickArrivalDate() async {
-    final controller = _controllers['arrivalDate'];
-    final today = DateTime.now();
-    final lastDate = DateTime(today.year + 3, 12, 31);
-    final parsed = DateTime.tryParse(controller?.text ?? '');
-    final initialDate = parsed == null ||
-            parsed.isBefore(DateTime(2020)) ||
-            parsed.isAfter(lastDate)
-        ? today
-        : parsed;
-    final picked = await showDatePicker(
-      context: context,
-      initialDate: initialDate,
-      firstDate: DateTime(2020),
-      lastDate: lastDate,
-      builder: (context, child) => Theme(
-        data: Theme.of(context).copyWith(
-          colorScheme: const ColorScheme.light(
-            primary: Color(0xffd66a3d),
-            onPrimary: Colors.white,
-            surface: Color(0xfff4efe6),
-            onSurface: Color(0xff17231f),
-          ),
-        ),
-        child: child!,
-      ),
-    );
-    if (picked == null || !mounted) return;
-    controller?.text = '${picked.year.toString().padLeft(4, '0')}-'
-        '${picked.month.toString().padLeft(2, '0')}-'
-        '${picked.day.toString().padLeft(2, '0')}';
-    setState(() {});
-  }
-
-  Widget _field(String key, String label,
-          {TextInputType? keyboardType,
-          bool readOnly = false,
-          VoidCallback? onTap,
-          Widget? suffixIcon}) =>
+  Widget _field(String key, String label, {TextInputType? keyboardType}) =>
       TextField(
           controller: _controllers[key],
           keyboardType: keyboardType,
-          readOnly: readOnly,
-          onTap: onTap,
           style: const TextStyle(
               color: Color(0xff17231f),
               fontSize: 15,
@@ -221,8 +181,7 @@ class _VjwPrepareScreenState extends State<VjwPrepareScreen> {
               focusedBorder: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(14),
                   borderSide:
-                      const BorderSide(color: Color(0xffd66a3d), width: 1.5)),
-              suffixIcon: suffixIcon));
+                      const BorderSide(color: Color(0xffd66a3d), width: 1.5))));
 
   Widget _prefectureField(BuildContext context, String label) {
     final locale = Localizations.localeOf(context).languageCode;
@@ -300,16 +259,13 @@ class _VjwPrepareScreenState extends State<VjwPrepareScreen> {
                             height: 1.45,
                             fontWeight: FontWeight.w600)),
                   ),
-                  _vjwBrandBanner(),
+                  const SizedBox(height: 24),
                   _sectionTitle(
                       s.vjwFlightSection, Icons.flight_takeoff_rounded),
                   _field('flightNumber', s.vjwFlightNumber),
                   const SizedBox(height: 9),
                   _field('arrivalDate', s.vjwArrivalDate,
-                      readOnly: true,
-                      onTap: _pickArrivalDate,
-                      suffixIcon: const Icon(Icons.calendar_month_rounded,
-                          color: Color(0xffd66a3d))),
+                      keyboardType: TextInputType.datetime),
                   const SizedBox(height: 22),
                   _sectionTitle(s.vjwStaySection, Icons.hotel_rounded),
                   _field('stayName', s.vjwStayName),
@@ -367,12 +323,5 @@ class _VjwPrepareScreenState extends State<VjwPrepareScreen> {
                   fontSize: 17,
                   fontWeight: FontWeight.w800)),
         ]),
-      );
-
-  Widget _vjwBrandBanner() => Image.asset(
-        'assets/images/vjw_prepare_banner_transparent.png',
-        width: double.infinity,
-        height: 112,
-        fit: BoxFit.cover,
       );
 }

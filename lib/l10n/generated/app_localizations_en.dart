@@ -249,6 +249,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get vjwDeleteAll => 'Delete all saved values';
 
   @override
+  String get vjwEdit => 'Edit values';
+
+  @override
   String get vjwInjected => 'Entered';
 
   @override

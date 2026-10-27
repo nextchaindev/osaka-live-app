@@ -7,7 +7,6 @@ import 'package:osaka_app/l10n/generated/app_localizations.dart';
 import 'package:osaka_app/models/vjw_helper_values.dart';
 import 'package:osaka_app/widgets/vjw/vjw_value_chip_bar.dart';
 import 'package:osaka_app/widgets/webview/no_internet_widget.dart';
-import 'package:permission_handler/permission_handler.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 class VjwWebViewScreen extends StatefulWidget {
@@ -34,12 +33,6 @@ class _VjwWebViewScreenState extends State<VjwWebViewScreen> {
         host.endsWith('.gstatic.com');
   }
 
-  bool _isTrustedVjwOrigin(WebUri origin) {
-    final uri = origin.uriValue;
-    return uri.scheme == 'https' &&
-        (uri.host == 'digital.go.jp' || uri.host.endsWith('.digital.go.jp'));
-  }
-
   @override
   Widget build(BuildContext context) {
     final s = AppLocalizations.of(context)!;
@@ -56,19 +49,11 @@ class _VjwWebViewScreenState extends State<VjwWebViewScreen> {
               filter: ImageFilter.blur(sigmaX: 16, sigmaY: 16),
               child: Container(
                   decoration: const BoxDecoration(
-                gradient: LinearGradient(
-                  begin: Alignment.topLeft,
-                  end: Alignment.bottomRight,
-                  colors: [
-                    Color.fromRGBO(226, 232, 255, 0.97),
-                    Color.fromRGBO(184, 199, 255, 0.92),
-                  ],
-                ),
-                border: Border(
-                  bottom: BorderSide(
-                      color: Color.fromRGBO(8, 29, 201, 0.34), width: 1.5),
-                ),
-              )),
+                      color: Color.fromRGBO(244, 239, 230, 0.78),
+                      border: Border(
+                          bottom: BorderSide(
+                              color: Color.fromRGBO(23, 35, 31, 0.08),
+                              width: 1)))),
             )),
             title: Text(s.vjwPrepareTitle),
             leading: IconButton(
@@ -77,7 +62,10 @@ class _VjwWebViewScreenState extends State<VjwWebViewScreen> {
             actions: [
               IconButton(
                   icon: const Icon(Icons.refresh),
-                  onPressed: () => _controller?.reload())
+                  onPressed: () => _controller?.reload()),
+              TextButton(
+                  onPressed: () => Navigator.pop(context),
+                  child: Text(s.vjwEdit))
             ]),
         body: Column(children: [
           Expanded(
@@ -89,34 +77,6 @@ class _VjwWebViewScreenState extends State<VjwWebViewScreen> {
                       useShouldOverrideUrlLoading: true,
                       thirdPartyCookiesEnabled: false),
                   onWebViewCreated: (controller) => _controller = controller,
-                  onPermissionRequest: (controller, request) async {
-                    if (!_isTrustedVjwOrigin(request.origin)) {
-                      return PermissionResponse(
-                          action: PermissionResponseAction.DENY);
-                    }
-
-                    final needsCamera = request.resources.any((resource) =>
-                        resource == PermissionResourceType.CAMERA ||
-                        resource ==
-                            PermissionResourceType.CAMERA_AND_MICROPHONE);
-                    final needsMicrophone = request.resources.any((resource) =>
-                        resource == PermissionResourceType.MICROPHONE ||
-                        resource ==
-                            PermissionResourceType.CAMERA_AND_MICROPHONE);
-
-                    final cameraGranted = !needsCamera ||
-                        (await Permission.camera.request()).isGranted;
-                    final microphoneGranted = !needsMicrophone ||
-                        (await Permission.microphone.request()).isGranted;
-                    if (!cameraGranted || !microphoneGranted) {
-                      return PermissionResponse(
-                          action: PermissionResponseAction.DENY);
-                    }
-
-                    return PermissionResponse(
-                        resources: request.resources,
-                        action: PermissionResponseAction.GRANT);
-                  },
                   onLoadStart: (_, __) => setState(() {
                         _loading = true;
                         _showError = false;
